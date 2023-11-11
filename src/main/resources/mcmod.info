@@ -1,0 +1,12 @@
+[{
+    "modid": "${modid}",
+    "name": "${modname}",
+    "description": "Add customized stuffs with in-game editing!",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "logoFile": "",
+    "url": "",
+    "authorList": ["Katatsumuri.pan"],
+    "credits": "",
+    "dependencies": []
+}]
