@@ -1,18 +1,19 @@
 package kpan.ig_custom_stuff.util.handlers;
 
+import kpan.ig_custom_stuff.ModMain;
 import kpan.ig_custom_stuff.block.BlockBase;
 import kpan.ig_custom_stuff.block.BlockInit;
 import kpan.ig_custom_stuff.item.ItemInit;
-import kpan.ig_custom_stuff.ModMain;
+import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.util.interfaces.IHasModel;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 
 @EventBusSubscriber
 public class RegistryHandler {
@@ -22,9 +23,11 @@ public class RegistryHandler {
 	}
 
 	public static void initRegistries() {
+		MyPacketHandler.registerMessages();
 	}
 
 	public static void postInitRegistries() {
+		ModMain.proxy.postRegisterOnlyClient();
 	}
 
 	public static void serverRegistries(@SuppressWarnings("unused") FMLServerStartingEvent event) {

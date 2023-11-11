@@ -112,11 +112,11 @@ public class MyMethodVisitor extends MethodVisitor {
 		super.visitEnd();
 		if (success < successExpectedMinInclusive || success > successExpectedMaxInclusive) {
 			if (successExpectedMinInclusive == successExpectedMaxInclusive)
-				throw new RuntimeException("transform failed:" + nameForDebug + "\nexpected:" + successExpectedMinInclusive + "\nactual:" + success);
+				throw new RuntimeException("method transform failed:" + nameForDebug + "\nexpected:" + successExpectedMinInclusive + "\nactual:" + success);
 			else if (successExpectedMaxInclusive == Integer.MAX_VALUE)
-				throw new RuntimeException("transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~\nactual:" + success);
+				throw new RuntimeException("method transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~\nactual:" + success);
 			else
-				throw new RuntimeException("transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~" + successExpectedMaxInclusive + "\nactual:" + success);
+				throw new RuntimeException("method transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~" + successExpectedMaxInclusive + "\nactual:" + success);
 		}
 	}
 

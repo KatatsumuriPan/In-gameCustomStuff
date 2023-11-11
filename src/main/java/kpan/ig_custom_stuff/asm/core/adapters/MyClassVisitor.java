@@ -43,11 +43,11 @@ public class MyClassVisitor extends ClassVisitor {
 		super.visitEnd();
 		if (successed < successExpectedMinInclusive || successed > successExpectedMaxInclusive) {
 			if (successExpectedMinInclusive == successExpectedMaxInclusive)
-				throw new RuntimeException("transform failed:" + nameForDebug + "\nexpected:" + successExpectedMinInclusive + "\nactual:" + successed);
+				throw new RuntimeException("class transform failed:" + nameForDebug + "\nexpected:" + successExpectedMinInclusive + "\nactual:" + successed);
 			else if (successExpectedMaxInclusive == Integer.MAX_VALUE)
-				throw new RuntimeException("transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~\nactual:" + successed);
+				throw new RuntimeException("class transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~\nactual:" + successed);
 			else
-				throw new RuntimeException("transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~" + successExpectedMaxInclusive + "\nactual:" + successed);
+				throw new RuntimeException("class transform failed:" + nameForDebug + "\nexpected: " + successExpectedMinInclusive + "~" + successExpectedMaxInclusive + "\nactual:" + successed);
 		}
 	}
 }
