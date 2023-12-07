@@ -87,7 +87,7 @@ public class BlockStateEntry {
 		public String getString() {
 			switch (this) {
 				case SIMPLE -> {
-					return I18n.format("ingame_custom_stuff.block_model.simple");
+					return I18n.format("ingame_custom_stuff.block_state.simple");
 				}
 				default -> throw new AssertionError();
 			}

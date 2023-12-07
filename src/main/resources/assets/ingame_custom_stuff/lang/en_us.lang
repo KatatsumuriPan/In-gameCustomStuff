@@ -215,6 +215,7 @@ ingame_custom_stuff.update_chunk_light=Recalculate chunk light(%s, %s).
 ingame_custom_stuff.item_model.none=None
 ingame_custom_stuff.item_model.simple=Simple
 ingame_custom_stuff.item_model.handheld=Handheld
+ingame_custom_stuff.block_state.simple=Simple
 ingame_custom_stuff.block_model.none=None
 ingame_custom_stuff.block_model.simple=Simple
 
