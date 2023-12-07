@@ -13,6 +13,7 @@ public class BlockPropertyEntryBuilder {
 	public @Nullable CreativeTabs creativeTab;
 	public Material material;
 	public boolean isFullOpaqueCube;
+	public FaceCullingType faceCullingType;
 
 
 	public BlockPropertyEntryBuilder(BlockPropertyEntry propertyEntry) {
@@ -22,9 +23,10 @@ public class BlockPropertyEntryBuilder {
 		creativeTab = propertyEntry.creativeTab;
 		material = propertyEntry.material;
 		isFullOpaqueCube = propertyEntry.isFullOpaqueCube;
+		faceCullingType = propertyEntry.faceCullingType;
 	}
 	public BlockPropertyEntry build() {
-		return new BlockPropertyEntry(hardness, resistance, soundType, creativeTab, material, isFullOpaqueCube);
+		return new BlockPropertyEntry(hardness, resistance, soundType, creativeTab, material, isFullOpaqueCube, faceCullingType);
 	}
 
 	public float getHardness() {
@@ -62,5 +64,11 @@ public class BlockPropertyEntryBuilder {
 	}
 	public void setIsFullOpaqueCube(boolean fullOpaqueCube) {
 		isFullOpaqueCube = fullOpaqueCube;
+	}
+	public FaceCullingType getFaceCullingType() {
+		return faceCullingType;
+	}
+	public void setFaceCullingType(FaceCullingType faceCullingType) {
+		this.faceCullingType = faceCullingType;
 	}
 }

@@ -102,18 +102,22 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+		//blockModelListの後に描画するとCAGEモデルの向きがバグる
+		//理由は不明
+		{
+			int w = Math.min(height / 3, (int) (infoWidth * 0.8));
+			int l = infoLeft + ((infoWidth - w) / 2);
+			Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
+			Gui.drawRect(l, 0, l + w, w, -1);
+			ResourceLocation modelId = blockModelList.getSelectedModelId();
+			if (modelId != null) {
+				IBakedModel model = SingleBlockModelLoader.getModel(modelId);
+				if (model != null)
+					RenderUtil.renderModel(l, 0, w / 16f, ClientEventHandler.tick * 2, 30, model);
+			}
+		}
 		blockModelList.drawScreen(mouseX, mouseY, partialTicks);
 		drawCenteredString(fontRenderer, I18n.format("gui.ingame_custom_stuff.block_model_menu.title"), 145, 8 - 4, 16777215);
-		int w = Math.min(height / 3, (int) (infoWidth * 0.8));
-		int l = infoLeft + ((infoWidth - w) / 2);
-		Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
-		Gui.drawRect(l, 0, l + w, w, -1);
-		ResourceLocation modelId = blockModelList.getSelectedModelId();
-		if (modelId != null) {
-			IBakedModel model = SingleBlockModelLoader.getModel(modelId);
-			if (model != null)
-				RenderUtil.renderModel(l, 0, w / 16f, ClientEventHandler.tick * 2, 30, model);
-		}
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		searchField.drawTextBox();
 	}

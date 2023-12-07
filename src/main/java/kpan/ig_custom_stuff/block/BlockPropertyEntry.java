@@ -9,6 +9,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
+import kpan.ig_custom_stuff.util.MyJsonUtil;
 import kpan.ig_custom_stuff.util.MyReflectionHelper;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -30,6 +31,7 @@ public class BlockPropertyEntry {
 	public static final String NONE_CREATIVE_TAB = "NONE";
 	public static final Material DEFAULT_MATERIAL = Material.GROUND;
 	public static final boolean DEFAULT_IS_FULL_OPAQUE_CUBE = true;
+	public static final FaceCullingType DEFAULT_GLASS_LIKE_CULLING = FaceCullingType.NORMAL;
 
 	public static final BiMap<String, SoundType> VANILLA_SOUND_TYPES;
 	public static final List<SoundType> VANILLA_SOUND_TYPE_LIST = new ArrayList<>();
@@ -110,11 +112,12 @@ public class BlockPropertyEntry {
 		CreativeTabs creativeTab = toCreativeTab(MyByteBufUtil.readString(buf));
 		Material material = VANILLA_MATERIALS.get(MyByteBufUtil.readString(buf));
 		boolean isFullOpaqueCube = buf.readBoolean();
-		return new BlockPropertyEntry(hardness, resistance, soundType, creativeTab, material, isFullOpaqueCube);
+		FaceCullingType faceCullingType = MyByteBufUtil.readEnum(buf, FaceCullingType.class);
+		return new BlockPropertyEntry(hardness, resistance, soundType, creativeTab, material, isFullOpaqueCube, faceCullingType);
 	}
 
 	public static BlockPropertyEntry defaultOption() { return new BlockPropertyEntry(); }
-	public static BlockPropertyEntry forRemovedBlock() { return new BlockPropertyEntry(0, 0, SoundType.GLASS, null, DEFAULT_MATERIAL, false); }
+	public static BlockPropertyEntry forRemovedBlock() { return new BlockPropertyEntry(0, 0, SoundType.GLASS, null, DEFAULT_MATERIAL, false, DEFAULT_GLASS_LIKE_CULLING); }
 
 	public final float hardness;
 	public final float resistance;
@@ -122,18 +125,20 @@ public class BlockPropertyEntry {
 	public final @Nullable CreativeTabs creativeTab;
 	public final Material material;
 	public final boolean isFullOpaqueCube;
+	public final FaceCullingType faceCullingType;
 
 	private BlockPropertyEntry() {
-		this(DEFAULT_HARDNESS, DEFAULT_RESISTANCE, DEFAULT_SOUND, DEFAULT_CREATIVE_TAB, DEFAULT_MATERIAL, DEFAULT_IS_FULL_OPAQUE_CUBE);
+		this(DEFAULT_HARDNESS, DEFAULT_RESISTANCE, DEFAULT_SOUND, DEFAULT_CREATIVE_TAB, DEFAULT_MATERIAL, DEFAULT_IS_FULL_OPAQUE_CUBE, DEFAULT_GLASS_LIKE_CULLING);
 	}
 
-	public BlockPropertyEntry(float hardness, float resistance, SoundType soundType, @Nullable CreativeTabs creativeTab, Material material, boolean isFullOpaqueCube) {
+	public BlockPropertyEntry(float hardness, float resistance, SoundType soundType, @Nullable CreativeTabs creativeTab, Material material, boolean isFullOpaqueCube, FaceCullingType faceCullingType) {
 		this.hardness = hardness;
 		this.resistance = resistance;
 		this.soundType = soundType;
 		this.creativeTab = creativeTab;
 		this.material = material;
 		this.isFullOpaqueCube = isFullOpaqueCube;
+		this.faceCullingType = faceCullingType;
 	}
 
 	public void writeTo(ByteBuf buf) {
@@ -143,6 +148,7 @@ public class BlockPropertyEntry {
 		MyByteBufUtil.writeString(buf, toCreativeTabLabel(creativeTab));
 		MyByteBufUtil.writeString(buf, VANILLA_MATERIALS.inverse().get(material));
 		buf.writeBoolean(isFullOpaqueCube);
+		MyByteBufUtil.writeEnum(buf, faceCullingType);
 	}
 
 	public static BlockPropertyEntry deserialize(@Nullable JsonObject jsonObject, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
@@ -154,8 +160,9 @@ public class BlockPropertyEntry {
 		CreativeTabs creativeTab = toCreativeTab(JsonUtils.getString(jsonObject, "creativeTab", ""));
 		Material material = VANILLA_MATERIALS.getOrDefault(JsonUtils.getString(jsonObject, "material", ""), DEFAULT_MATERIAL);
 		boolean isFullOpaqueCube = JsonUtils.getBoolean(jsonObject, "isFullOpaqueCube", DEFAULT_IS_FULL_OPAQUE_CUBE);
+		FaceCullingType faceCullingType = MyJsonUtil.deserializeEnum(jsonObject, "faceCullingType", context, FaceCullingType.NORMAL, FaceCullingType.class);
 
-		return new BlockPropertyEntry(hardness, resistance, soundType, creativeTab, material, isFullOpaqueCube);
+		return new BlockPropertyEntry(hardness, resistance, soundType, creativeTab, material, isFullOpaqueCube, faceCullingType);
 	}
 
 	public JsonElement serialize(Type type, JsonSerializationContext context) {
@@ -166,6 +173,7 @@ public class BlockPropertyEntry {
 		basic_property.addProperty("creativeTab", toCreativeTabLabel(creativeTab));
 		basic_property.addProperty("material", VANILLA_MATERIALS.inverse().get(material));
 		basic_property.addProperty("isFullOpaqueCube", isFullOpaqueCube);
+		basic_property.add("faceCullingType", context.serialize(faceCullingType));
 		return basic_property;
 	}
 

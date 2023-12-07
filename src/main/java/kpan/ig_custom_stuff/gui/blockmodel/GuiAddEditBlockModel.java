@@ -66,10 +66,11 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 	private final IMyGuiScreen parent;
 	private final boolean isAdd;
 	private GuiButton createButton;
+	private GuiButton modelTypeBtn;
 	private String initModelId = "";
 	private GuiTextField modelIdField;
 	private @Nullable String modelIdError = null;
-	private final BlockModelEntry blockModelEntry;
+	private BlockModelEntry blockModelEntry;
 	private IBakedModel modelCache;
 	private int lastMouseX = -1;
 	private int lastMouseY = -1;
@@ -88,6 +89,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		Keyboard.enableRepeatEvents(true);
 		createButton = addButton(new GuiButton(0, width / 2 - 155, height - 28, 150, 20, I18n.format("gui.done")));
 		addButton(new GuiButton(1, width / 2 + 5, height - 28, 150, 20, I18n.format("gui.cancel")));
+		modelTypeBtn = addButton(new GuiButton(2, width - 150, 20, 150, 20, ""));
 		modelIdField = new GuiTextField(100, fontRenderer, 100, 40, 200, 20);
 		modelIdField.setMaxStringLength(32767);
 		modelIdField.setText(initModelId);
@@ -116,6 +118,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		modelIdField.setFocused(true);
 		modelIdField.setEnabled(isAdd);
 		checkValid();
+		updateButtonText();
 	}
 
 	@Override
@@ -136,6 +139,17 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 				parent.redisplay();
 			}
 			case 1 -> parent.redisplay();
+			case 2 -> {
+				ModelType nextModelType;
+				switch (blockModelEntry.modelType) {
+					case NORMAL -> nextModelType = ModelType.CAGE;
+					case CAGE -> nextModelType = ModelType.NORMAL;
+					default -> throw new AssertionError();
+				}
+				blockModelEntry = new BlockModelEntry(nextModelType, blockModelEntry.faces, blockModelEntry.textureIds);
+				modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+				updateButtonText();
+			}
 			case 10, 11, 12, 13, 14, 15, 16, 17, 18 -> {
 				mc.displayGuiScreen(new GuiSelectTexture(resourceLocation -> {
 					if (resourceLocation != null) {
@@ -185,7 +199,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 			for (GuiButton guibutton : buttonList) {
 				if (guibutton.mousePressed(mc, mouseX, mouseY)) {
 					switch (guibutton.id) {
-						case 10, 11, 12, 13, 14, 15 -> {
+						case 10, 11, 12, 13, 14, 15, 17, 18 -> {
 							BlockModelFaceEntry faceEntry;
 							switch (guibutton.id) {
 								case 10 -> faceEntry = blockModelEntry.faces[EnumFacing.UP.getIndex()];
@@ -207,6 +221,28 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 											case 14 -> blockModelEntry.faces[EnumFacing.EAST.getIndex()] = blockModelFaceEntry;
 											case 15 -> blockModelEntry.faces[EnumFacing.DOWN.getIndex()] = blockModelFaceEntry;
 										}
+										modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+									}
+								}));
+							} else if (guibutton.id == 17) {
+								mc.displayGuiScreen(new GuiEditBlockModelFace(this, blockModelEntry.textureIds, blockModelEntry.faces[EnumFacing.UP.getIndex()], blockModelFaceEntry -> {
+									if (blockModelFaceEntry != null) {
+										blockModelEntry.faces[EnumFacing.UP.getIndex()] = blockModelFaceEntry;
+										blockModelEntry.faces[EnumFacing.NORTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.NORTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										blockModelEntry.faces[EnumFacing.WEST.getIndex()] = with(blockModelEntry.faces[EnumFacing.WEST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										blockModelEntry.faces[EnumFacing.SOUTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.SOUTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										blockModelEntry.faces[EnumFacing.EAST.getIndex()] = with(blockModelEntry.faces[EnumFacing.EAST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										blockModelEntry.faces[EnumFacing.DOWN.getIndex()] = with(blockModelEntry.faces[EnumFacing.DOWN.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+									}
+								}));
+							} else if (guibutton.id == 18) {
+								mc.displayGuiScreen(new GuiEditBlockModelFace(this, blockModelEntry.textureIds, blockModelEntry.faces[EnumFacing.NORTH.getIndex()], blockModelFaceEntry -> {
+									if (blockModelFaceEntry != null) {
+										blockModelEntry.faces[EnumFacing.NORTH.getIndex()] = blockModelFaceEntry;
+										blockModelEntry.faces[EnumFacing.WEST.getIndex()] = with(blockModelEntry.faces[EnumFacing.WEST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										blockModelEntry.faces[EnumFacing.SOUTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.SOUTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										blockModelEntry.faces[EnumFacing.EAST.getIndex()] = with(blockModelEntry.faces[EnumFacing.EAST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
 										modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
 									}
 								}));
@@ -311,20 +347,8 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		for (GuiButton guibutton : buttonList) {
 			if (guibutton.mousePressed(mc, mouseX, mouseY)) {
 				switch (guibutton.id) {
-					case 10, 11, 12, 13, 14, 15 -> {
-						BlockModelFaceEntry faceEntry;
-						switch (guibutton.id) {
-							case 10 -> faceEntry = blockModelEntry.faces[EnumFacing.UP.getIndex()];
-							case 11 -> faceEntry = blockModelEntry.faces[EnumFacing.NORTH.getIndex()];
-							case 12 -> faceEntry = blockModelEntry.faces[EnumFacing.WEST.getIndex()];
-							case 13 -> faceEntry = blockModelEntry.faces[EnumFacing.SOUTH.getIndex()];
-							case 14 -> faceEntry = blockModelEntry.faces[EnumFacing.EAST.getIndex()];
-							case 15 -> faceEntry = blockModelEntry.faces[EnumFacing.DOWN.getIndex()];
-							default -> faceEntry = null;
-						}
-						if (faceEntry != null) {
-							drawHoveringText(Arrays.asList(I18n.format("gui.ingame_custom_stuff.addedit_block_model.edit_face_hovering_text1"), I18n.format("gui.ingame_custom_stuff.addedit_block_model.edit_face_hovering_text2")), mouseX, mouseY, fontRenderer);
-						}
+					case 10, 11, 12, 13, 14, 15, 17, 18 -> {
+						drawHoveringText(Arrays.asList(I18n.format("gui.ingame_custom_stuff.addedit_block_model.edit_face_hovering_text1"), I18n.format("gui.ingame_custom_stuff.addedit_block_model.edit_face_hovering_text2")), mouseX, mouseY, fontRenderer);
 					}
 				}
 			}
@@ -354,6 +378,10 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 						&& blockModelEntry != null;
 	}
 
+	private void updateButtonText() {
+		modelTypeBtn.displayString = blockModelEntry.modelType.getString();
+	}
+
 	private ResourceLocation getModelId() {
 		String modelName = modelIdField.getText();
 		int index = modelName.indexOf(':');
@@ -371,9 +399,14 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		return new ResourceLocation(namespace, path);
 	}
 
+
 	private void drawTexture(int x, int y, TextureAtlasSprite sprite, TextureUV uv, int rotation) {
 		Gui.drawRect(x, y, x + textureSize, y + textureSize, -1);
 		GlStateManager.bindTexture(mc.getTextureMapBlocks().getGlTextureId());
 		RenderUtil.drawTexturedModalRect(x, y, zLevel, sprite, uv.minU, uv.minV, uv.maxU, uv.maxV, rotation, textureSize, textureSize);
+	}
+
+	private BlockModelFaceEntry with(BlockModelFaceEntry base, TextureUV uv, int rotation) {
+		return new BlockModelFaceEntry(base.textureTag, uv, rotation, base.cullface);
 	}
 }

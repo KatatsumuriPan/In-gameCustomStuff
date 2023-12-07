@@ -39,6 +39,7 @@ public class DynamicBlockBase extends Block {
 
 	private boolean isFullOpaqueCube;
 	private boolean isRemoved = false;
+	private FaceCullingType faceCullingType;
 
 	public DynamicBlockBase(ResourceLocation blockId, BlockPropertyEntry blockPropertyEntry) {
 		super(Material.ROCK, Material.ROCK.getMaterialMapColor());
@@ -56,6 +57,7 @@ public class DynamicBlockBase extends Block {
 		setMaterial(blockPropertyEntry.material);
 		setBlockMapColor(blockPropertyEntry.material.getMaterialMapColor());
 		isFullOpaqueCube = blockPropertyEntry.isFullOpaqueCube;
+		faceCullingType = blockPropertyEntry.faceCullingType;
 	}
 
 	public void setRemoved(boolean removed) {
@@ -220,16 +222,23 @@ public class DynamicBlockBase extends Block {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public boolean shouldSideBeRendered(IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
-		IBlockState iblockstate = blockAccess.getBlockState(pos.offset(side));
-		Block block = iblockstate.getBlock();
-		if (blockState != iblockstate) {
-			return true;
+		switch (faceCullingType) {
+			case NORMAL -> {
+				return super.shouldSideBeRendered(blockState, blockAccess, pos, side);
+			}
+			case GLASS -> {
+				IBlockState iblockstate = blockAccess.getBlockState(pos.offset(side));
+				Block block = iblockstate.getBlock();
+				if (blockState != iblockstate) {
+					return true;
+				}
+				if (block == this) {
+					return false;
+				}
+				return super.shouldSideBeRendered(blockState, blockAccess, pos, side);
+			}
+			default -> throw new AssertionError();
 		}
-		if (block == this) {
-			return false;
-		}
-
-		return super.shouldSideBeRendered(blockState, blockAccess, pos, side);
 	}
 
 

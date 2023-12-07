@@ -2,6 +2,7 @@ package kpan.ig_custom_stuff.gui.block;
 
 import kpan.ig_custom_stuff.block.BlockPropertyEntry;
 import kpan.ig_custom_stuff.block.BlockPropertyEntryBuilder;
+import kpan.ig_custom_stuff.block.FaceCullingType;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.gui.MyGuiList;
 import net.minecraft.client.gui.GuiButton;
@@ -13,6 +14,7 @@ import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 @SideOnly(Side.CLIENT)
@@ -23,11 +25,18 @@ public class GuiEditBlockProperty extends GuiScreen implements IMyGuiScreen {
 	private final Consumer<BlockPropertyEntry> onCompleted;
 	private GuiButton doneButton;
 	private MyGuiList guiList;
+	private RenderingType renderingType;
 
 	public GuiEditBlockProperty(IMyGuiScreen parent, BlockPropertyEntry blockPropertyEntry, Consumer<BlockPropertyEntry> onCompleted) {
 		this.parent = parent;
 		builder = new BlockPropertyEntryBuilder(blockPropertyEntry);
 		this.onCompleted = onCompleted;
+		if (blockPropertyEntry.isFullOpaqueCube)
+			renderingType = RenderingType.DIRT;
+		else if (blockPropertyEntry.faceCullingType == FaceCullingType.GLASS)
+			renderingType = RenderingType.GLASS;
+		else
+			renderingType = RenderingType.CAGE;
 	}
 
 	@Override
@@ -43,7 +52,7 @@ public class GuiEditBlockProperty extends GuiScreen implements IMyGuiScreen {
 		guiList.addValuesButton("gui.ingame_custom_stuff.edit_block_property.soundType", builder.soundType, BlockPropertyEntry::getTranslationKey, BlockPropertyEntry.VANILLA_SOUND_TYPE_LIST, builder::setSoundType);
 		guiList.addValuesButton("gui.ingame_custom_stuff.edit_block_property.creativeTab", builder.creativeTab, BlockPropertyEntry::getTranslationKey, BlockPropertyEntry.ALL_CREATIVE_TAB_LIST, builder::setCreativeTab);
 		guiList.addValuesButton("gui.ingame_custom_stuff.edit_block_property.material", builder.material, BlockPropertyEntry::getTranslationKey, BlockPropertyEntry.VANILLA_MATERIAL_LIST, builder::setMaterial);
-		guiList.addValuesButton("gui.ingame_custom_stuff.edit_block_property.renderingType", builder.isFullOpaqueCube, b -> b ? "gui.ingame_custom_stuff.edit_block_property.renderingType.dirt" : "gui.ingame_custom_stuff.edit_block_property.renderingType.glass", Arrays.asList(true, false), builder::setIsFullOpaqueCube);
+		guiList.addValuesButton("gui.ingame_custom_stuff.edit_block_property.renderingType", renderingType, rt -> "gui.ingame_custom_stuff.edit_block_property.renderingType." + rt.name().toLowerCase(Locale.ROOT), Arrays.asList(RenderingType.values()), rt -> renderingType = rt);
 		guiList.initGui();
 
 		checkValid();
@@ -55,6 +64,20 @@ public class GuiEditBlockProperty extends GuiScreen implements IMyGuiScreen {
 	}
 
 	public BlockPropertyEntry getPropertyEntry() {
+		switch (renderingType) {
+			case DIRT -> {
+				builder.setIsFullOpaqueCube(true);
+				builder.setFaceCullingType(FaceCullingType.NORMAL);
+			}
+			case GLASS -> {
+				builder.setIsFullOpaqueCube(false);
+				builder.setFaceCullingType(FaceCullingType.GLASS);
+			}
+			case CAGE -> {
+				builder.setIsFullOpaqueCube(false);
+				builder.setFaceCullingType(FaceCullingType.NORMAL);
+			}
+		}
 		return builder.build();
 	}
 
@@ -113,4 +136,9 @@ public class GuiEditBlockProperty extends GuiScreen implements IMyGuiScreen {
 		doneButton.enabled = true;
 	}
 
+	public enum RenderingType {
+		DIRT,
+		GLASS,
+		CAGE,
+	}
 }

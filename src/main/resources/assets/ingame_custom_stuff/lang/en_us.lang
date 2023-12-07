@@ -30,6 +30,7 @@ gui.ingame_custom_stuff.edit_block_property.material=Material
 gui.ingame_custom_stuff.edit_block_property.renderingType=Rendering type
 gui.ingame_custom_stuff.edit_block_property.renderingType.dirt=Dirt
 gui.ingame_custom_stuff.edit_block_property.renderingType.glass=Glass
+gui.ingame_custom_stuff.edit_block_property.renderingType.cage=Cage
 gui.ingame_custom_stuff.select_block_model.title=Select block model
 gui.ingame_custom_stuff.addedit_block_model.title.add=Add block model
 gui.ingame_custom_stuff.addedit_block_model.title.edit=Edit block model
@@ -217,6 +218,7 @@ ingame_custom_stuff.item_model.simple=Simple
 ingame_custom_stuff.item_model.handheld=Handheld
 ingame_custom_stuff.block_state.simple=Simple
 ingame_custom_stuff.block_model.none=None
-ingame_custom_stuff.block_model.simple=Simple
+ingame_custom_stuff.block_model.normal=Normal
+ingame_custom_stuff.block_model.cage=Cage
 
 item.ingame_custom_stuff.registry_book.name=Registry Book
