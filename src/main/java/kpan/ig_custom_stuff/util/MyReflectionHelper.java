@@ -1,7 +1,5 @@
 package kpan.ig_custom_stuff.util;
 
-import kpan.ig_custom_stuff.util.MyReflectionHelper.UnableToAccessFieldException;
-import kpan.ig_custom_stuff.util.MyReflectionHelper.UnableToInvokeException;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 import javax.annotation.Nonnull;
@@ -13,13 +11,42 @@ import java.lang.reflect.Method;
 @SuppressWarnings({"unchecked", "unused", "deprecation"})
 public class MyReflectionHelper {
 
+	public static Class<?> getClass(String name) {
+		try {
+			return Class.forName(name.replace('/', '.'));
+		} catch (java.lang.ClassNotFoundException e) {
+			throw new ClassNotFoundException(e);
+		}
+	}
+
 	public static <T> T getPublicField(Object instance, String fieldName) throws UnableToAccessFieldException {
 		try {
 			Field field;
 			field = instance.getClass().getField(fieldName);
 			return (T) field.get(instance);
 		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			throw new UnableToAccessFieldException(e);
+			throw new UnableToAccessFieldException(instance.getClass().getName(), e);
+		}
+	}
+
+	public static <T> T getPublicStaticField(Class<?> classToAccess, String fieldName) throws UnableToAccessFieldException {
+		try {
+			Field field;
+			field = classToAccess.getField(fieldName);
+			return (T) field.get(null);
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			throw new UnableToAccessFieldException(classToAccess.getName(), e);
+		}
+	}
+
+	public static <T> T getPublicStaticField(String classToAccess, String fieldName) throws UnableToAccessFieldException {
+		Class<?> clazz = getClass(classToAccess);
+		try {
+			Field field;
+			field = clazz.getField(fieldName);
+			return (T) field.get(null);
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			throw new UnableToAccessFieldException(classToAccess, e);
 		}
 	}
 
@@ -29,7 +56,7 @@ public class MyReflectionHelper {
 			field = instance.getClass().getField(fieldName);
 			field.set(instance, value);
 		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			throw new UnableToAccessFieldException(e);
+			throw new UnableToAccessFieldException(instance.getClass().getName(), e);
 		}
 	}
 
@@ -41,7 +68,7 @@ public class MyReflectionHelper {
 			method.setAccessible(true);
 			return (T) method.invoke(instance, args);
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			throw new UnableToInvokeException(e);
+			throw new UnableToInvokeException(instance.getClass().getName(), e);
 		}
 	}
 
@@ -61,21 +88,13 @@ public class MyReflectionHelper {
 
 	//"a.b.c.Class"
 	public static <T> T getPrivateField(String classToAccess, @Nonnull Object instance, String fieldName) throws UnableToAccessFieldException {
-		try {
-			Class<?> clazz = Class.forName(classToAccess);
-			return getPrivateField(clazz, instance, fieldName);
-		} catch (ClassNotFoundException e) {
-			throw new UnableToAccessFieldException(e);
-		}
+		Class<?> clazz = getClass(classToAccess);
+		return getPrivateField(clazz, instance, fieldName);
 	}
 
 	public static <T> T getPrivateStaticField(String classToAccess, String fieldName) throws UnableToAccessFieldException {
-		try {
-			Class<?> clazz = Class.forName(classToAccess);
-			return getPrivateStaticField(clazz, fieldName);
-		} catch (ClassNotFoundException e) {
-			throw new UnableToAccessFieldException(e);
-		}
+		Class<?> clazz = getClass(classToAccess);
+		return getPrivateStaticField(clazz, fieldName);
 	}
 
 	public static void setPrivateField(@Nonnull Object instance, String fieldName, Object value) throws UnableToAccessFieldException {
@@ -91,21 +110,13 @@ public class MyReflectionHelper {
 	}
 
 	public static void setPrivateField(String classToAccess, @Nonnull Object instance, String fieldName, Object value) throws UnableToAccessFieldException {
-		try {
-			Class<?> clazz = Class.forName(classToAccess);
-			setPrivateField(clazz, instance, fieldName, value);
-		} catch (ClassNotFoundException e) {
-			throw new UnableToAccessFieldException(e);
-		}
+		Class<?> clazz = getClass(classToAccess);
+		setPrivateField(clazz, instance, fieldName, value);
 	}
 
 	public static void setPrivateStaticField(String classToAccess, String fieldName, Object value) throws UnableToAccessFieldException {
-		try {
-			Class<?> clazz = Class.forName(classToAccess);
-			setPrivateStaticField(clazz, fieldName, value);
-		} catch (ClassNotFoundException e) {
-			throw new UnableToAccessFieldException(e);
-		}
+		Class<?> clazz = getClass(classToAccess);
+		setPrivateStaticField(clazz, fieldName, value);
 	}
 
 	public static <T> T invokePrivateMethod(@Nonnull Object instance, String methodName, Class<?>[] parameterTypes, Object[] args) {
@@ -139,7 +150,7 @@ public class MyReflectionHelper {
 			field.setAccessible(true);
 			return (T) field.get(instance);
 		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			throw new UnableToAccessFieldException(e);
+			throw new UnableToAccessFieldException(classToAccess.getName(), e);
 		}
 	}
 
@@ -150,7 +161,7 @@ public class MyReflectionHelper {
 			field.setAccessible(true);
 			field.set(instance, value);
 		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			throw new UnableToAccessFieldException(e);
+			throw new UnableToAccessFieldException(classToAccess.getName(), e);
 		}
 	}
 
@@ -166,7 +177,7 @@ public class MyReflectionHelper {
 			method.setAccessible(true);
 			return (T) method.invoke(instance, args);
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			throw new UnableToInvokeException(e);
+			throw new UnableToInvokeException(classToAccess.getName(), e);
 		}
 	}
 
@@ -197,7 +208,7 @@ public class MyReflectionHelper {
 		try {
 			return (T) method.invoke(instance, args);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			throw new UnableToInvokeException(e);
+			throw new UnableToInvokeException(classToAccess.getName(), e);
 		}
 	}
 
@@ -227,17 +238,28 @@ public class MyReflectionHelper {
 		return types;
 	}
 
+	public static class ClassNotFoundException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
+		public ClassNotFoundException(Exception e) { super(e); }
+	}
+
 	public static class UnableToAccessFieldException extends RuntimeException {
 
 		private static final long serialVersionUID = 1L;
 
-		public UnableToAccessFieldException(Exception e) { super(e); }
+		public UnableToAccessFieldException(String className, Exception e) {
+			super(e.toString() + " of class " + className, e);
+		}
 	}
 
 	public static class UnableToInvokeException extends RuntimeException {
 
 		private static final long serialVersionUID = 1L;
 
-		public UnableToInvokeException(Exception e) { super(e); }
+		public UnableToInvokeException(String className, Exception e) {
+			super(e.toString() + " of class " + className, e);
+		}
 	}
 }

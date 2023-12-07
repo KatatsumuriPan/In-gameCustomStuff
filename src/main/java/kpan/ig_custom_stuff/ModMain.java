@@ -1,6 +1,9 @@
 package kpan.ig_custom_stuff;
 
 import kpan.ig_custom_stuff.proxy.CommonProxy;
+import kpan.ig_custom_stuff.registry.DynamicServerRegistryManager;
+import kpan.ig_custom_stuff.resource.DynamicResourceManager;
+import kpan.ig_custom_stuff.resource.ModResourcePack;
 import kpan.ig_custom_stuff.util.handlers.RegistryHandler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.fml.common.Mod;
@@ -11,6 +14,7 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -31,9 +35,19 @@ public class ModMain {
 	public static CommonProxy proxy;
 
 	public static final Logger LOGGER = LogManager.getLogger(ModTagsGenerated.MODNAME);
-	
+
 	@Nullable
 	public static MinecraftServer server = null;
+
+	public ModMain() {
+		try {
+			Class.forName("net.minecraft.client.Minecraft");
+			//今のうちに読み込まないと間に合わない
+			ModResourcePack clientCache = ModResourcePack.CLIENT_CACHE;
+		} catch (ClassNotFoundException ignored) {
+			//サーバー側ならこっちにくる
+		}
+	}
 
 	@EventHandler
 	public static void preInit(FMLPreInitializationEvent event) {
@@ -52,5 +66,14 @@ public class ModMain {
 	@EventHandler
 	public static void onServerAboutToStart(FMLServerAboutToStartEvent event) {
 		server = event.getServer();
+		DynamicResourceManager.Server.init(event.getServer());
+		//DynamicResourceManagerのinitより後
+		DynamicServerRegistryManager.loadItem(event.getServer());
+		DynamicServerRegistryManager.loadBlock(event.getServer());
+	}
+
+	@EventHandler
+	public static void onServerStopped(FMLServerStoppedEvent event) {
+		server = null;
 	}
 }

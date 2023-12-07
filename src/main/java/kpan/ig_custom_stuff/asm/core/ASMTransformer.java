@@ -1,8 +1,17 @@
 package kpan.ig_custom_stuff.asm.core;
 
 import kpan.ig_custom_stuff.asm.core.adapters.MixinAccessorAdapter;
-import kpan.ig_custom_stuff.asm.tf.TF_FontRenderer;
-import kpan.ig_custom_stuff.asm.tf.TF_TileEntityFurnace;
+import kpan.ig_custom_stuff.asm.tf.TF_CPacketCustomPayload;
+import kpan.ig_custom_stuff.asm.tf.TF_FMLHandshakeClientState;
+import kpan.ig_custom_stuff.asm.tf.TF_FMLHandshakeServerState;
+import kpan.ig_custom_stuff.asm.tf.TF_GameData;
+import kpan.ig_custom_stuff.asm.tf.TF_Minecraft;
+import kpan.ig_custom_stuff.asm.tf.TF_ModelLoader;
+import kpan.ig_custom_stuff.asm.tf.TF_ModelLoaderRegistry;
+import kpan.ig_custom_stuff.asm.tf.TF_RegistryData;
+import kpan.ig_custom_stuff.asm.tf.TF_Stitcher;
+import kpan.ig_custom_stuff.asm.tf.TF_TextureMap;
+import kpan.ig_custom_stuff.asm.tf.TF_WeightedRandomModel;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -30,8 +39,17 @@ public class ASMTransformer implements IClassTransformer {
 			//Adapterを通して書き換え出来るようにする。
 			ClassVisitor cv = cw;
 			cv = MixinAccessorAdapter.transformAccessor(cv, transformedName);
-			cv = TF_FontRenderer.appendVisitor(cv, transformedName);
-			cv = TF_TileEntityFurnace.appendVisitor(cv, transformedName);
+			cv = TF_CPacketCustomPayload.appendVisitor(cv, transformedName);
+			cv = TF_FMLHandshakeClientState.appendVisitor(cv, transformedName);
+			cv = TF_FMLHandshakeServerState.appendVisitor(cv, transformedName);
+			cv = TF_GameData.appendVisitor(cv, transformedName);
+			cv = TF_Minecraft.appendVisitor(cv, transformedName);
+			cv = TF_ModelLoader.appendVisitor(cv, transformedName);
+			cv = TF_ModelLoaderRegistry.appendVisitor(cv, transformedName);
+			cv = TF_RegistryData.appendVisitor(cv, transformedName);
+			cv = TF_Stitcher.appendVisitor(cv, transformedName);
+			cv = TF_TextureMap.appendVisitor(cv, transformedName);
+			cv = TF_WeightedRandomModel.appendVisitor(cv, transformedName);
 
 			if (cv == cw)
 				return bytes;

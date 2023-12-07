@@ -1,6 +1,7 @@
 package kpan.ig_custom_stuff.item;
 
 import kpan.ig_custom_stuff.ModMain;
+import kpan.ig_custom_stuff.ModTagsGenerated;
 import kpan.ig_custom_stuff.util.interfaces.IHasModel;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
@@ -9,8 +10,8 @@ public class ItemBase extends Item implements IHasModel {
 
 	public ItemBase(String name, CreativeTabs tabs) {
 
-		setTranslationKey(name);
-		setRegistryName(name);
+		setTranslationKey(ModTagsGenerated.MODID + "." + name);
+		setRegistryName(ModTagsGenerated.MODID + ":" + name);
 		setCreativeTab(tabs);
 		//setHasSubtypes(true)/*ダメージ値等で複数の種類のアイテムを分けているかどうか。デフォルトfalse*/
 		//setMaxDamage(256)/*耐久値の設定。デフォルト0*/

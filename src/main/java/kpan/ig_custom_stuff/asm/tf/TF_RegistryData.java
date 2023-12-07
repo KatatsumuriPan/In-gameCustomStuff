@@ -1,8 +1,8 @@
 package kpan.ig_custom_stuff.asm.tf;
 
+import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.asm.core.AsmTypes;
 import kpan.ig_custom_stuff.asm.core.AsmUtil;
-import kpan.ig_custom_stuff.asm.core.MyAsmNameRemapper.MethodRemap;
 import kpan.ig_custom_stuff.asm.core.adapters.InjectInstructionsAdapter;
 import kpan.ig_custom_stuff.asm.core.adapters.Instructions;
 import kpan.ig_custom_stuff.asm.core.adapters.MixinAccessorAdapter;
@@ -10,12 +10,11 @@ import kpan.ig_custom_stuff.asm.core.adapters.MyClassVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 
-public class TF_FontRenderer {
+public class TF_RegistryData {
 
-	private static final String TARGET = "net.minecraft.client.gui.FontRenderer";
-	private static final String HOOK = AsmTypes.HOOK + "HK_" + "FontRenderer";
-	private static final String ACC = AsmTypes.ACC + "ACC_" + "FontRenderer";
-	private static final MethodRemap renderChar = new MethodRemap(TARGET, "renderChar", AsmUtil.toMethodDesc(AsmTypes.FLOAT, AsmTypes.CHAR, AsmTypes.BOOL), "func_181559_a");
+	private static final String TARGET = "net.minecraftforge.fml.common.network.handshake.FMLHandshakeMessage$RegistryData";
+	private static final String HOOK = AsmTypes.HOOK + "HK_" + "RegistryData";
+	private static final String ACC = AsmTypes.ACC + "ACC_" + "RegistryData";
 
 	public static ClassVisitor appendVisitor(ClassVisitor cv, String className) {
 		if (!TARGET.equals(className))
@@ -24,19 +23,27 @@ public class TF_FontRenderer {
 			@Override
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-				if (renderChar.isTarget(name, desc)) {
-					mv = InjectInstructionsAdapter.injectFirst(mv, name,
-							Instructions.create()
+				if (name.equals("fromBytes")) {
+					mv = InjectInstructionsAdapter.injectBeforeReturns(mv, name
+							, Instructions.create()
 									.aload(0)
-									.iload(1)
-									.invokeStatic(HOOK, "onRenderChar", AsmUtil.composeRuntimeMethodDesc(AsmTypes.CHAR, TARGET, AsmTypes.CHAR))
-									.istore(1)
+									.aload(1)
+									.invokeStatic(HOOK, "fromBytes", AsmUtil.composeRuntimeMethodDesc(AsmTypes.VOID, TARGET, AsmUtil.toDesc(ByteBuf.class)))
+					);
+					success();
+				}
+				if (name.equals("toBytes")) {
+					mv = InjectInstructionsAdapter.injectBeforeReturns(mv, name
+							, Instructions.create()
+									.aload(0)
+									.aload(1)
+									.invokeStatic(HOOK, "toBytes", AsmUtil.composeRuntimeMethodDesc(AsmTypes.VOID, TARGET, AsmUtil.toDesc(ByteBuf.class)))
 					);
 					success();
 				}
 				return mv;
 			}
-		};
+		}.setSuccessExpected(2);
 		newcv = new MixinAccessorAdapter(newcv, className, ACC);
 		return newcv;
 	}
