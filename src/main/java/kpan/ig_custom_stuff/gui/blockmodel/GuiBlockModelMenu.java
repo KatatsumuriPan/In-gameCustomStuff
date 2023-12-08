@@ -114,6 +114,8 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 				IBakedModel model = SingleBlockModelLoader.getModel(modelId);
 				if (model != null)
 					RenderUtil.renderModel(l, 0, w / 16f, ClientEventHandler.tick * 2, 30, model);
+				BlockModelEntry modelEntry = ClientCache.INSTANCE.getBlockModel(modelId);
+				drawString(mc.fontRenderer, I18n.format("gui.ingame_custom_stuff.block_model_menu.block_model_type", modelEntry.getString()), infoLeft + 4, w + 4, -1);
 			}
 		}
 		blockModelList.drawScreen(mouseX, mouseY, partialTicks);

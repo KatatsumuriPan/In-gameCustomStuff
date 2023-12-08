@@ -49,6 +49,7 @@ gui.ingame_custom_stuff.edit_block_model_face.max_v=下端
 gui.ingame_custom_stuff.edit_block_model_face.rotation=回転
 gui.ingame_custom_stuff.block_model_menu.title=ブロックモデルリスト
 gui.ingame_custom_stuff.block_model_menu.delete_block_model=%sの削除
+gui.ingame_custom_stuff.block_model_menu.block_model_type=モデルタイプ: %s
 gui.ingame_custom_stuff.addedit_item.title.add=アイテムの追加
 gui.ingame_custom_stuff.addedit_item.title.edit=アイテムの編集
 gui.ingame_custom_stuff.addedit_item.label.item_id=アイテムID

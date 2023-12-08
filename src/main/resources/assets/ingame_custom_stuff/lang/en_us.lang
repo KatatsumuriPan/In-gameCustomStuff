@@ -49,6 +49,7 @@ gui.ingame_custom_stuff.edit_block_model_face.max_v=Bottom
 gui.ingame_custom_stuff.edit_block_model_face.rotation=Rotation
 gui.ingame_custom_stuff.block_model_menu.title=Block model list
 gui.ingame_custom_stuff.block_model_menu.delete_block_model=Remove %s
+gui.ingame_custom_stuff.block_model_menu.block_model_type=ModelType: %s
 gui.ingame_custom_stuff.addedit_item.title.add=Add item
 gui.ingame_custom_stuff.addedit_item.title.edit=Edit item
 gui.ingame_custom_stuff.addedit_item.label.item_id=Item id
