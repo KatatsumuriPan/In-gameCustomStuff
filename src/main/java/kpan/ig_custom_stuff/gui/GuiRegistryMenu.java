@@ -6,6 +6,8 @@ import kpan.ig_custom_stuff.gui.item.GuiItemMenu;
 import kpan.ig_custom_stuff.gui.texture.GuiTextureMenu;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageUpdateChunkLightToServer;
+import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
 import kpan.ig_custom_stuff.util.handlers.ClientEventHandler;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiButton;
@@ -54,7 +56,12 @@ public class GuiRegistryMenu extends GuiScreen implements IMyGuiScreen {
 		if (button.enabled) {
 			switch (button.id) {
 				case 0 -> mc.displayGuiScreen(null);
-				case 1 -> mc.displayGuiScreen(new GuiBlockMenu(this));
+				case 1 -> {
+					if (ClientCache.INSTANCE.blockModelIds.isEmpty() && MCRegistryUtil.getBlockIds().isEmpty())
+						mc.displayGuiScreen(new GuiSimpleOk(this::redisplay, "gui.title.info", "gui.ingame_custom_stuff.registry_menu.no_block_models_registered.message"));
+					else
+						mc.displayGuiScreen(new GuiBlockMenu(this));
+				}
 				case 2 -> mc.displayGuiScreen(new GuiItemMenu(this));
 				case 3 -> mc.displayGuiScreen(new GuiBlockModelMenu(this));
 				case 4 -> mc.displayGuiScreen(new GuiTextureMenu(this));

@@ -8,6 +8,7 @@ gui.replace=置換
 gui.empty...=何もありません...
 gui.browse...=参照...
 gui.title.error=エラー！
+gui.title.info=インフォ
 
 gui.ingame_custom_stuff.addedit_block.title.add=ブロックの追加
 gui.ingame_custom_stuff.addedit_block.title.edit=ブロックの編集
@@ -106,6 +107,7 @@ gui.ingame_custom_stuff.registry_menu.button_label.block_model=ブロックモ�
 gui.ingame_custom_stuff.registry_menu.button_label.item=アイテム
 gui.ingame_custom_stuff.registry_menu.button_label.texture=テクスチャ
 gui.ingame_custom_stuff.registry_menu.button_label.update_chunk_light=現在のチャンクの光を再計算
+gui.ingame_custom_stuff.registry_menu.no_block_models_registered.message=ブロックモデルが1つも登録されていません。\nまずはブロックモデルの追加をしましょう。
 
 gui.ingame_custom_stuff.info.default_namespace_message=デフォルトのネームスペースは"%s"です
 gui.ingame_custom_stuff.error.id.too_long=IDの長さは%s以下である必要があります
