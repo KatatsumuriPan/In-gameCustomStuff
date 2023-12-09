@@ -1,0 +1,5 @@
+version 1.1.0 :
+ Add a new block model type: Cage.
+ Add a new block render-type: Cage.
+version 1.0.0 :
+ First release.
