@@ -79,7 +79,6 @@ public class RenderUtil {
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		setupGuiTransform(x, y, scale, bakedModel.isGui3d());
 		bakedModel = net.minecraftforge.client.ForgeHooksClient.handleCameraTransforms(bakedModel, TransformType.FIXED, false);
-		GlStateManager.pushMatrix();
 		GlStateManager.scale(1.252f, 1.25f, 1.25f);
 		if (pitch != 0)
 			GlStateManager.rotate(pitch, 1, 0, 0);
@@ -87,7 +86,6 @@ public class RenderUtil {
 			GlStateManager.rotate(yaw, 0, 1, 0);
 		GlStateManager.translate(-0.5F, -0.5F, -0.5F);
 		renderModel(bakedModel);
-		GlStateManager.popMatrix();
 		GlStateManager.disableAlpha();
 		GlStateManager.disableRescaleNormal();
 		GlStateManager.disableLighting();

@@ -24,7 +24,7 @@ public class GuiSimpleOk extends GuiScreen {
 	public GuiSimpleOk(Runnable onPushed, String title, String message, String okButtonText) {
 		this.onPushed = onPushed;
 		this.title = I18n.format(title);
-		this.message = I18n.format(message);
+		this.message = I18n.format(message).replace("\\n", "\n");
 		this.okButtonText = I18n.format(okButtonText);
 	}
 
