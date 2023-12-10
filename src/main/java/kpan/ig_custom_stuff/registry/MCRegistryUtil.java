@@ -7,6 +7,7 @@ import kpan.ig_custom_stuff.ModTagsGenerated;
 import kpan.ig_custom_stuff.block.BlockEntry;
 import kpan.ig_custom_stuff.block.BlockLangEntry;
 import kpan.ig_custom_stuff.block.BlockPropertyEntry;
+import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateType;
 import kpan.ig_custom_stuff.block.DynamicBlockBase;
 import kpan.ig_custom_stuff.block.item.ItemDynamicBlockBase;
 import kpan.ig_custom_stuff.item.DynamicItemBase;
@@ -252,15 +253,17 @@ public class MCRegistryUtil {
 			if (block == null)
 				throw new IllegalStateException(blockId + " is not registered!?");
 			block.setProperty(blockEntry.basicProperty);
+			block.setBlockStateType(blockEntry.blockStateType);
 			block.setRemoved(false);
 			removedBlocks.remove(blockId);
 		} else {
-			block = new DynamicBlockBase(blockId, blockEntry.basicProperty);
+			block = new DynamicBlockBase(blockId, blockEntry.blockStateType, blockEntry.basicProperty);
 			BLOCK_REGISTRY.unfreeze();
 			BLOCK_REGISTRY.register(block);
 			BLOCK_REGISTRY.freeze();
 		}
 		if (isRemote) {
+			DynamicResourceLoader.registerBlockStateMapper(block);
 			DynamicResourceLoader.loadBlockModel(block);
 		}
 		BLOCKS.put(blockId, blockEntry);
@@ -293,6 +296,7 @@ public class MCRegistryUtil {
 		BLOCKS.put(blockId, blockEntry);
 		DynamicBlockBase block = (DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId);
 		block.setProperty(blockEntry.basicProperty);
+		block.setBlockStateType(blockEntry.blockStateType);
 	}
 
 	public static boolean isBlockRegistered(ResourceLocation blockId) {
@@ -312,6 +316,7 @@ public class MCRegistryUtil {
 			return;
 		removedBlocks.add(blockId);
 		((DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId)).setProperty(BlockPropertyEntry.forRemovedBlock());
+		((DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId)).setBlockStateType(BlockStateType.SIMPLE);
 		((DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId)).setRemoved(true);
 	}
 
@@ -331,7 +336,7 @@ public class MCRegistryUtil {
 			register(entry, true);
 		}
 		for (ResourceLocation removedBlockId : removedBlockIds) {
-			DynamicBlockBase block = new DynamicBlockBase(removedBlockId, BlockPropertyEntry.forRemovedBlock());
+			DynamicBlockBase block = new DynamicBlockBase(removedBlockId, BlockStateType.SIMPLE, BlockPropertyEntry.forRemovedBlock());
 			block.setRemoved(true);
 			BLOCK_REGISTRY.unfreeze();
 			BLOCK_REGISTRY.register(block);

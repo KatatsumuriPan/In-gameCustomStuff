@@ -1,3 +1,5 @@
+version 1.2.0 :
+ Add BlockState Type.(You can now rotate a block!)
 version 1.1.0 :
  Add a new block model type: Cage.
  Add a new block render-type: Cage.

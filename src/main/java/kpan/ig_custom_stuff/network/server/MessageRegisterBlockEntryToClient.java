@@ -4,8 +4,10 @@ import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.block.BlockEntry;
 import kpan.ig_custom_stuff.block.BlockLangEntry;
 import kpan.ig_custom_stuff.block.BlockStateEntry;
+import kpan.ig_custom_stuff.block.DynamicBlockBase;
 import kpan.ig_custom_stuff.gui.block.GuiBlockMenu;
 import kpan.ig_custom_stuff.network.MessageBase;
+import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
 import kpan.ig_custom_stuff.resource.IdConverter;
@@ -61,6 +63,7 @@ public class MessageRegisterBlockEntryToClient extends MessageBase {
 		public static void doAction(ResourceLocation blockId, BlockStateEntry blockStateEntry) throws IOException {
 			ClientCache.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockId), blockStateEntry.blockModelId);
 			RemovedResourcesResourcePack.INSTANCE.removeRemovedBlock(blockId);
+			DynamicResourceLoader.registerBlockStateMapper((DynamicBlockBase) MCRegistryUtil.BLOCK_REGISTRY.getValue(blockId));
 			DynamicResourceLoader.loadBlockResources(blockId);
 			DynamicResourceLoader.reloadAllChunks();
 			GuiScreen screen = Minecraft.getMinecraft().currentScreen;

@@ -147,7 +147,7 @@ public class DynamicResourceLoader {
 			MyReflectionHelper.setPrivateField(modelLoader, "stateModels", original_stateModels);
 		});
 
-		ModelManager modelManager = Minecraft.getMinecraft().getRenderItem().getItemModelMesher().getModelManager();
+		ModelManager modelManager = Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelShapes().getModelManager();
 		Map<IBlockState, IBakedModel> bakedModelStore = modelLoader.blockModelShapes.bakedModelStore;
 		for (Entry<IBlockState, ModelResourceLocation> entry : mapper.getVariants(block).entrySet()) {
 			bakedModelStore.put(entry.getKey(), modelManager.getModel(entry.getValue()));
@@ -185,6 +185,10 @@ public class DynamicResourceLoader {
 		DynamicResourceLoader.loadBlockModel(blockId);
 		DynamicResourceLoader.loadItemModels(Collections.singletonList(blockId));
 		DynamicResourceLoader.reloadItemModelMesh(blockId);
+	}
+
+	public static void registerBlockStateMapper(DynamicBlockBase block) {
+		Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelShapes().registerBlockWithStateMapper(block, new DynamicBlockStateMapper());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -248,7 +252,7 @@ public class DynamicResourceLoader {
 			}
 		}
 
-		ModelManager modelManager = Minecraft.getMinecraft().getRenderItem().getItemModelMesher().getModelManager();
+		ModelManager modelManager = Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelShapes().getModelManager();
 		for (Entry<ModelResourceLocation, IModel> e : stateModels.entrySet()) {
 			modelManager.modelRegistry.putObject(e.getKey(), bakedModels.get(e.getValue()));
 		}
