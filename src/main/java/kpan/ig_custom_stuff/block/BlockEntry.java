@@ -11,6 +11,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.block.BlockEntry.BlockEntryJson.BlockType;
+import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateType;
 import kpan.ig_custom_stuff.registry.DynamicServerRegistryManager;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
@@ -25,20 +26,24 @@ public class BlockEntry {
 
 	public static BlockEntry fromByteBuf(ByteBuf buf) {
 		var itemId = new ResourceLocation(MyByteBufUtil.readString(buf));
+		BlockStateType blockStateType = MyByteBufUtil.readEnum(buf, BlockStateType.class);
 		var option = BlockPropertyEntry.fromByteBuf(buf);
-		return new BlockEntry(itemId, option);
+		return new BlockEntry(itemId, blockStateType, option);
 	}
 
 	public final ResourceLocation blockId;
+	public final BlockStateType blockStateType;
 	public final BlockPropertyEntry basicProperty;
 
-	public BlockEntry(ResourceLocation blockId, BlockPropertyEntry basicProperty) {
+	public BlockEntry(ResourceLocation blockId, BlockStateType blockStateType, BlockPropertyEntry basicProperty) {
 		this.blockId = blockId;
+		this.blockStateType = blockStateType;
 		this.basicProperty = basicProperty;
 	}
 
 	public void writeTo(ByteBuf buf) {
 		MyByteBufUtil.writeString(buf, blockId.toString());
+		MyByteBufUtil.writeEnum(buf, blockStateType);
 		basicProperty.writeTo(buf);
 	}
 
@@ -59,15 +64,17 @@ public class BlockEntry {
 	}
 
 	public String toJson() {
-		return new BlockEntryJson(BlockType.NORMAL, basicProperty).toJson();
+		return new BlockEntryJson(BlockType.NORMAL, blockStateType, basicProperty).toJson();
 	}
 
 	public static class BlockEntryJson {
 		public final BlockType type;
+		public final BlockStateType blockStateType;
 		public final BlockPropertyEntry propertyEntry;
 
-		public BlockEntryJson(BlockType type, BlockPropertyEntry propertyEntry) {
+		public BlockEntryJson(BlockType type, BlockStateType blockStateType, BlockPropertyEntry propertyEntry) {
 			this.type = type;
+			this.blockStateType = blockStateType;
 			this.propertyEntry = propertyEntry;
 		}
 
@@ -94,15 +101,21 @@ public class BlockEntry {
 			public BlockEntryJson deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 				JsonObject jsonObject = json.getAsJsonObject();
 				BlockType type = context.deserialize(jsonObject.get("type"), BlockType.class);
+				BlockStateType blockStateType;
+				if (jsonObject.has("block_state"))
+					blockStateType = context.deserialize(jsonObject.get("block_state"), BlockStateType.class);
+				else
+					blockStateType = BlockStateType.SIMPLE;
 				BlockPropertyEntry basicPropertyEntry = BlockPropertyEntry.deserialize(jsonObject.getAsJsonObject("basic_property"), typeOfT, context);
 
-				return new BlockEntryJson(type, basicPropertyEntry);
+				return new BlockEntryJson(type, blockStateType, basicPropertyEntry);
 			}
 
 			@Override
 			public JsonElement serialize(BlockEntryJson object, Type type, JsonSerializationContext context) {
 				JsonObject jsonobject = new JsonObject();
-				jsonobject.add("type", context.serialize(object.type));
+				jsonobject.add("type", context.serialize(object.blockStateType));
+				jsonobject.add("block_state", context.serialize(object.blockStateType));
 				jsonobject.add("basic_property", object.propertyEntry.serialize(type, context));
 				return jsonobject;
 			}

@@ -1,16 +1,17 @@
 package kpan.ig_custom_stuff.block;
 
+import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateType;
 import kpan.ig_custom_stuff.util.MyReflectionHelper;
 import kpan.ig_custom_stuff.util.interfaces.block.IHasMultiModels;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Enchantments;
 import net.minecraft.item.Item;
@@ -29,7 +30,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -40,9 +40,11 @@ public class DynamicBlockBase extends Block {
 	private boolean isFullOpaqueCube;
 	private boolean isRemoved = false;
 	private FaceCullingType faceCullingType;
+	private BlockStateType blockStateType;
 
-	public DynamicBlockBase(ResourceLocation blockId, BlockPropertyEntry blockPropertyEntry) {
+	public DynamicBlockBase(ResourceLocation blockId, BlockStateType blockStateType, BlockPropertyEntry blockPropertyEntry) {
 		super(Material.ROCK, Material.ROCK.getMaterialMapColor());
+		this.blockStateType = blockStateType;
 		setTranslationKey(blockId.getNamespace() + "." + blockId.getPath());
 		MyReflectionHelper.setPrivateField(Impl.class, this, "registryName", blockId);
 
@@ -60,6 +62,9 @@ public class DynamicBlockBase extends Block {
 		faceCullingType = blockPropertyEntry.faceCullingType;
 	}
 
+	public void setBlockStateType(BlockStateType blockStateType) {
+		this.blockStateType = blockStateType;
+	}
 	public void setRemoved(boolean removed) {
 		isRemoved = removed;
 	}
@@ -77,11 +82,80 @@ public class DynamicBlockBase extends Block {
 		this.blockMapColor = blockMapColor;
 	}
 
+	//ブロックステート
+
+	public BlockStateType getBlockStateType() {
+		return blockStateType;
+	}
+
+	@Override
+	public int getMetaFromState(IBlockState state) {
+		switch (blockStateType) {
+			case SIMPLE -> {
+				return 0;
+			}
+			case FACE6 -> {
+				return state.getValue(DynamicBlockStateContainer.FACING).getIndex();
+			}
+			case HORIZONTAL4 -> {
+				return state.getValue(DynamicBlockStateContainer.HORIZONTAL).getHorizontalIndex();
+			}
+			case XYZ -> {
+				return DynamicBlockStateContainer.getMetaFromXYZ(state.getValue(DynamicBlockStateContainer.XYZ_AXIS));
+			}
+			default -> throw new AssertionError();
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public IBlockState getStateFromMeta(int meta) {
+		switch (blockStateType) {
+			case SIMPLE -> {
+				return getDefaultState();
+			}
+			case FACE6 -> {
+				return getDefaultState().withProperty(DynamicBlockStateContainer.FACING, EnumFacing.byIndex(meta));
+			}
+			case HORIZONTAL4 -> {
+				return getDefaultState().withProperty(DynamicBlockStateContainer.HORIZONTAL, EnumFacing.byHorizontalIndex(meta));
+			}
+			case XYZ -> {
+				return getDefaultState().withProperty(DynamicBlockStateContainer.XYZ_AXIS, DynamicBlockStateContainer.getAxisFromMeta(meta));
+			}
+			default -> throw new AssertionError();
+		}
+	}
+
+	@Override
+	protected final BlockStateContainer createBlockState() {
+		return new DynamicBlockStateContainer(this);
+	}
+
+
+	@Override
+	public IBlockState getStateForPlacement(World worldIn, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int meta, EntityLivingBase placer) {
+		switch (blockStateType) {
+			case SIMPLE -> {
+				return getDefaultState();
+			}
+			case FACE6 -> {
+				return getDefaultState().withProperty(DynamicBlockStateContainer.FACING, EnumFacing.getDirectionFromEntityLiving(pos, placer));
+			}
+			case HORIZONTAL4 -> {
+				return getDefaultState().withProperty(DynamicBlockStateContainer.HORIZONTAL, placer.getHorizontalFacing().getOpposite());
+			}
+			case XYZ -> {
+				return getDefaultState().withProperty(DynamicBlockStateContainer.XYZ_AXIS, facing.getAxis());
+			}
+			default -> throw new AssertionError();
+		}
+	}
 
 	//アイテムドロップ等
 
 	@Override
-	public int damageDropped(IBlockState state) { return getMetaFromState(state); }
+	public int damageDropped(IBlockState state) { return 0; }
 
 	public Item getItem(IBlockState state) {
 		return Item.getItemFromBlock(this);
@@ -156,29 +230,6 @@ public class DynamicBlockBase extends Block {
 	}
 
 	//タイルエンティティ
-
-	//ブロックステート
-	protected ArrayList<IProperty<?>> getProperties() {
-		return new ArrayList<>();
-		/*	Overrideサンプル
-		ArrayList<IProperty<?>> properties = super.getProperties();
-		properties.add(AGE);
-		return properties;
-		 */
-	}
-
-	@Override
-	public int getMetaFromState(IBlockState state) { return 0; }
-
-	@SuppressWarnings("deprecation")
-	@Override
-	public IBlockState getStateFromMeta(int meta) { return getDefaultState(); }
-
-	@Override
-	protected final BlockStateContainer createBlockState() {
-		ArrayList<IProperty<?>> properties = getProperties();
-		return new BlockStateContainer(this, properties.toArray(new IProperty[0]));
-	}
 
 	//描画、モデル系
 	@SuppressWarnings("deprecation")

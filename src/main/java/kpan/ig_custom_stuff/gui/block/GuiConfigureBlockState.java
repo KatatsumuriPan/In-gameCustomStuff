@@ -2,7 +2,7 @@ package kpan.ig_custom_stuff.gui.block;
 
 import kpan.ig_custom_stuff.ModReference;
 import kpan.ig_custom_stuff.block.BlockStateEntry;
-import kpan.ig_custom_stuff.block.BlockStateEntry.BlockstateType;
+import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateType;
 import kpan.ig_custom_stuff.gui.GuiDropDownButton;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
@@ -54,17 +54,17 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 		modelIdFld = new GuiTextField(10, fontRenderer, 100, 60, 200, 20);
 		modelIdFld.setMaxStringLength(32767);
 		modelIdFld.setText(initModelId);
-		BlockstateType type;
+		BlockStateType type;
 		if (blockStateEntry != null) {
 			type = blockStateEntry.blockstateType;
 		} else {
-			type = BlockstateType.SIMPLE;
+			type = BlockStateType.SIMPLE;
 		}
 		addButton(new GuiButton(3, 100 + 210, 60, 100, 20, I18n.format("gui.select")));
 
-		BlockstateType[] values = BlockstateType.values();
+		BlockStateType[] values = BlockStateType.values();
 		for (int i = 0; i < values.length; i++) {
-			BlockstateType value = values[i];
+			BlockStateType value = values[i];
 			modelTypeBtn.add(100, 20, getString(value));
 			if (value == type)
 				modelTypeBtn.setSelectedButtonIndex(i);
@@ -81,7 +81,7 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 		String modelId = modelIdFld.getText();
 		if (!modelId.contains(":"))
 			modelId = ModReference.DEFAULT_NAMESPACE + ":" + modelId;
-		return new BlockStateEntry(BlockstateType.values()[modelTypeBtn.getSelectedButtonIndex()], new ResourceLocation(modelId));
+		return new BlockStateEntry(BlockStateType.values()[modelTypeBtn.getSelectedButtonIndex()], new ResourceLocation(modelId));
 	}
 
 	@Override
@@ -134,7 +134,7 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 		drawCenteredString(fontRenderer, I18n.format("gui.ingame_custom_stuff.configure_block_state.title"), width / 2, 20, 0xffffffff);
 
 		super.drawScreen(mouseX, mouseY, partialTicks);
-		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.configure_block_state.label.model_type"), 20, 30 + 7, 0xFFA0A0A0);
+		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.configure_block_state.label.blockstate_type"), 20, 30 + 7, 0xFFA0A0A0);
 		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.configure_block_state.label.model_id"), 20, 60 + 7, 0xFFA0A0A0);
 		modelIdFld.drawTextBox();
 		if (modelIdError != null)
@@ -160,7 +160,7 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 		doneButton.enabled = modelIdError == null;
 	}
 
-	private static String getString(BlockstateType blockstateType) {
+	private static String getString(BlockStateType blockstateType) {
 		return blockstateType.getString();
 	}
 }

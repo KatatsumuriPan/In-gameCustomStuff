@@ -146,7 +146,7 @@ public class DynamicServerRegistryManager {
 							String json = new String(Files.readAllBytes(p), StandardCharsets.UTF_8);
 							BlockEntryJson blockEntryJson = BlockEntryJson.fromJson(json);
 							ResourceLocation blockId = new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.')));
-							blocks.put(blockId, new BlockEntry(blockId, blockEntryJson.propertyEntry));
+							blocks.put(blockId, new BlockEntry(blockId, blockEntryJson.blockStateType, blockEntryJson.propertyEntry));
 
 							if (Server.INSTANCE.getBlockState(blockId) == null) {
 								ModMain.LOGGER.info("A block state of {} is not found.", blockId);

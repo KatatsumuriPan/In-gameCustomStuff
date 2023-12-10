@@ -92,7 +92,7 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 				String blockId = blockIdField.getText();
 				if (!blockId.contains(":"))
 					blockId = ModReference.DEFAULT_NAMESPACE + ":" + blockId;
-				BlockEntry blockEntry = new BlockEntry(new ResourceLocation(blockId), blockPropertyEntry);
+				BlockEntry blockEntry = new BlockEntry(new ResourceLocation(blockId), blockStateEntry.blockstateType, blockPropertyEntry);
 				BlockLangEntry blockLangEntry = new BlockLangEntry(blockNameField.getText());
 				if (isAdd)
 					MyPacketHandler.sendToServer(new MessageRegisterBlockEntryToServer(blockEntry, blockStateEntry, blockLangEntry));
