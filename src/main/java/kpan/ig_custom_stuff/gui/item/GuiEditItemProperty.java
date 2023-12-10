@@ -37,7 +37,7 @@ public class GuiEditItemProperty extends GuiScreen implements IMyGuiScreen {
 		addButton(new GuiButton(1, width / 2 + 5, height - 28, 150, 20, I18n.format("gui.cancel")));
 
 
-		guiList = new MyGuiList(this, mc, width, height - 70, 30);
+		guiList = new MyGuiList(this, mc, width, height, 30, height - 30);
 		guiList.addValuesButton("gui.ingame_custom_stuff.edit_item_property.creativeTab", builder.creativeTab, CreativeTabs::getTranslationKey, ItemPropertyEntry.ALL_CREATIVE_TABS.values(), builder::setCreativeTab);
 		guiList.initGui();
 

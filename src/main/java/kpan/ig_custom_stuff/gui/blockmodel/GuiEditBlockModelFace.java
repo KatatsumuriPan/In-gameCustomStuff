@@ -50,7 +50,7 @@ public class GuiEditBlockModelFace extends GuiScreen implements IMyGuiScreen {
 		doneButton = addButton(new GuiButton(0, width / 2 - 155, height - 28, 150, 20, I18n.format("gui.done")));
 		addButton(new GuiButton(1, width / 2 + 5, height - 28, 150, 20, I18n.format("gui.cancel")));
 
-		guiList = new MyGuiList(this, mc, (int) (width * 0.8), height - 70, 30);
+		guiList = new MyGuiList(this, mc, (int) (width * 0.8), height, 30, height - 30);
 		guiList.addFloatButton("gui.ingame_custom_stuff.edit_block_model_face.min_u", uv.minU, 0, 16, this::setMinU);
 		guiList.addFloatButton("gui.ingame_custom_stuff.edit_block_model_face.min_v", uv.minV, 0, 16, this::setMinV);
 		guiList.addFloatButton("gui.ingame_custom_stuff.edit_block_model_face.max_u", uv.maxU, 0, 16, this::setMaxU);
