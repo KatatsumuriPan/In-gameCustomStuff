@@ -35,7 +35,9 @@ public class WorldEventHandler {
 			}
 			if (event.world.rand.nextInt(200) == 0) {
 				ArrayList<Chunk> chunks = new ArrayList<>(((ChunkProviderServer) event.world.getChunkProvider()).loadedChunks.values());
-				updateChunkLight(chunks.get(event.world.rand.nextInt(chunks.size())));
+				int size = chunks.size();
+				if (size > 0)
+					updateChunkLight(chunks.get(event.world.rand.nextInt(size)));
 			}
 		}
 	}
