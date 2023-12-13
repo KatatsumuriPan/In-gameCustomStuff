@@ -13,6 +13,7 @@ import kpan.ig_custom_stuff.network.client.MessageReplaceBlockModelsToServer;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.TemporaryBlockModelLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -36,15 +37,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 @SideOnly(Side.CLIENT)
-public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
+public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScreen {
 	private static final int textureSize = 32;
 	private static final int buttonTop = 100;
 	private static final int viewLeft = 270;
 
-	public static GuiAddEditBlockModel add(IMyGuiScreen parent) {
+	public static GuiAddEditBlockModelNormal add(IMyGuiScreen okScreen, IMyGuiScreen cancelScreen) {
 		BlockModelFaceEntry[] faces = new BlockModelFaceEntry[6];
 		for (int i = 0; i < faces.length; i++) {
-			faces[i] = new BlockModelFaceEntry(EnumFacing.VALUES[i].getName2(), TextureUV.DEFAULT, 0, EnumFacing.VALUES[i]);
+			faces[i] = new BlockModelFaceEntry(EnumFacing.VALUES[i].getName2(), TextureUV.FULL, 0, EnumFacing.VALUES[i]);
 		}
 		ResourceLocation dirt = new ResourceLocation("blocks/dirt");
 		HashMap<String, ResourceLocation> textureIds = new HashMap<>();
@@ -55,15 +56,16 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		textureIds.put("south", dirt);
 		textureIds.put("west", dirt);
 		textureIds.put("particle", dirt);
-		return new GuiAddEditBlockModel(parent, true, new BlockModelEntry(ModelType.NORMAL, faces, textureIds));
+		return new GuiAddEditBlockModelNormal(okScreen, cancelScreen, true, new BlockModelEntry(ModelType.NORMAL, faces, textureIds));
 	}
-	public static GuiAddEditBlockModel edit(IMyGuiScreen parent, ResourceLocation modelId, BlockModelEntry blockModelEntry) {
-		GuiAddEditBlockModel gui = new GuiAddEditBlockModel(parent, false, blockModelEntry);
-		gui.initModelId = modelId.toString();
+	public static GuiAddEditBlockModelNormal edit(IMyGuiScreen parent, BlockModelId modelId, BlockModelEntry blockModelEntry) {
+		GuiAddEditBlockModelNormal gui = new GuiAddEditBlockModelNormal(parent, parent, false, blockModelEntry);
+		gui.initModelId = modelId.namespace + ":" + modelId.path.substring("normal/".length());
 		return gui;
 	}
 
-	private final IMyGuiScreen parent;
+	private final IMyGuiScreen okScreen;
+	private final IMyGuiScreen cancelScreen;
 	private final boolean isAdd;
 	private GuiButton createButton;
 	private GuiButton isCageBtn;
@@ -77,11 +79,12 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 	private float rotateYaw = 10;
 	private float rotatePitch = 30;
 
-	public GuiAddEditBlockModel(IMyGuiScreen parent, boolean isAdd, BlockModelEntry blockModelEntry) {
-		this.parent = parent;
+	public GuiAddEditBlockModelNormal(IMyGuiScreen okScreen, IMyGuiScreen cancelScreen, boolean isAdd, BlockModelEntry blockModelEntry) {
+		this.okScreen = okScreen;
+		this.cancelScreen = cancelScreen;
 		this.isAdd = isAdd;
 		this.blockModelEntry = blockModelEntry;
-		modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+		updateCache(blockModelEntry);
 	}
 
 	@Override
@@ -131,15 +134,15 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 	protected void actionPerformed(GuiButton button) {
 		switch (button.id) {
 			case 0 -> {
-				Map<ResourceLocation, BlockModelEntry> map = new HashMap<>();
+				Map<BlockModelId, BlockModelEntry> map = new HashMap<>();
 				map.put(getModelId(), blockModelEntry);
 				if (isAdd)
 					MyPacketHandler.sendToServer(new MessageRegisterBlockModelsToServer(map));
 				else
 					MyPacketHandler.sendToServer(new MessageReplaceBlockModelsToServer(map));
-				parent.redisplay();
+				okScreen.redisplay();
 			}
-			case 1 -> parent.redisplay();
+			case 1 -> cancelScreen.redisplay();
 			case 2 -> {
 				ModelType nextModelType;
 				switch (blockModelEntry.modelType) {
@@ -148,7 +151,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 					default -> throw new AssertionError();
 				}
 				blockModelEntry = new BlockModelEntry(nextModelType, blockModelEntry.faces, blockModelEntry.textureIds);
-				modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+				updateCache(blockModelEntry);
 				updateButtonText();
 			}
 			case 10, 11, 12, 13, 14, 15, 16, 17, 18 -> {
@@ -178,7 +181,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 								blockModelEntry.textureIds.put("east", resourceLocation);
 							}
 						}
-						modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+						updateCache(blockModelEntry);
 					}
 					redisplay();
 				}));
@@ -222,7 +225,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 											case 14 -> blockModelEntry.faces[EnumFacing.EAST.getIndex()] = blockModelFaceEntry;
 											case 15 -> blockModelEntry.faces[EnumFacing.DOWN.getIndex()] = blockModelFaceEntry;
 										}
-										modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+										updateCache(blockModelEntry);
 									}
 								}));
 							} else if (guibutton.id == 17) {
@@ -234,7 +237,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 										blockModelEntry.faces[EnumFacing.SOUTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.SOUTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
 										blockModelEntry.faces[EnumFacing.EAST.getIndex()] = with(blockModelEntry.faces[EnumFacing.EAST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
 										blockModelEntry.faces[EnumFacing.DOWN.getIndex()] = with(blockModelEntry.faces[EnumFacing.DOWN.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+										updateCache(blockModelEntry);
 									}
 								}));
 							} else if (guibutton.id == 18) {
@@ -244,7 +247,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 										blockModelEntry.faces[EnumFacing.WEST.getIndex()] = with(blockModelEntry.faces[EnumFacing.WEST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
 										blockModelEntry.faces[EnumFacing.SOUTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.SOUTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
 										blockModelEntry.faces[EnumFacing.EAST.getIndex()] = with(blockModelEntry.faces[EnumFacing.EAST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
+										updateCache(blockModelEntry);
 									}
 								}));
 							}
@@ -291,8 +294,8 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		modelIdField.drawTextBox();
 		if (modelIdError != null)
 			drawString(fontRenderer, I18n.format(modelIdError), 100 + 4, 60 + 4, 0xFFFF2222);
-		else if (!modelIdField.getText().contains(":"))
-			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.info.default_namespace_message", ModReference.DEFAULT_NAMESPACE), 100 + 4, 60 + 4, 0xFF22FF22);
+		else if (isAdd)
+			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block_model.info.real_model_id", getModelId().toString()), 100 + 4, 60 + 4, 0xFF22FF22);
 
 		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block_model.label.is_cage"), 20, 75 + 7, 0xFFA0A0A0);
 
@@ -340,7 +343,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 			int x = (int) (100 + textureSize * 3.5);
 			int y = buttonTop;
 			TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(blockModelEntry.textureIds.get("particle").toString());
-			drawTexture(x, y, sprite, TextureUV.DEFAULT, 0);
+			drawTexture(x, y, sprite, TextureUV.FULL, 0);
 		}
 		Gui.drawRect(viewLeft, 80, width - 10, height - 30, -1);
 		int w = Math.min(width - 10 - 250, height - 30 - 80);
@@ -370,7 +373,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 			if (modelIdField.getText().isEmpty()) {
 				modelIdError = "gui.ingame_custom_stuff.error.path.empty";
 			} else {
-				ResourceLocation modelId = getModelId();
+				BlockModelId modelId = getModelId();
 				modelIdError = DynamicResourceManager.getBlockModelIdErrorMessage(modelId, false);
 				if (ClientCache.INSTANCE.blockModelIds.containsKey(modelId))
 					modelIdError = "gui.ingame_custom_stuff.error.id_already_exists";
@@ -385,7 +388,11 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		isCageBtn.displayString = blockModelEntry.isCage() ? "true" : "false";
 	}
 
-	private ResourceLocation getModelId() {
+	private void updateCache(BlockModelEntry blockModelEntry) {
+		modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJsonNormal());
+	}
+
+	private BlockModelId getModelId() {
 		String modelName = modelIdField.getText();
 		int index = modelName.indexOf(':');
 		String namespace;
@@ -397,9 +404,8 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 			namespace = ModReference.DEFAULT_NAMESPACE;
 			path = modelName;
 		}
-		if (!path.startsWith("block/"))
-			path = "block/" + path;
-		return new ResourceLocation(namespace, path);
+		path = "normal/" + path;
+		return new BlockModelId(namespace, path);
 	}
 
 

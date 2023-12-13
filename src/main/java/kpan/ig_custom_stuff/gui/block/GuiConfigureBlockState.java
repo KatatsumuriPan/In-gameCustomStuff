@@ -1,7 +1,7 @@
 package kpan.ig_custom_stuff.gui.block;
 
+import com.google.common.collect.ImmutableMap;
 import kpan.ig_custom_stuff.block.BlockStateEntry;
-import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateModelEntry;
 import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateType;
 import kpan.ig_custom_stuff.gui.GuiDropDownButton;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
@@ -15,7 +15,6 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 @SideOnly(Side.CLIENT)
@@ -41,15 +40,19 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 		doneButton = addButton(new GuiButton(0, width / 2 - 155, height - 28, 150, 20, I18n.format("gui.done")));
 		addButton(new GuiButton(1, width / 2 + 5, height - 28, 150, 20, I18n.format("gui.cancel")));
 
-		modelTypeBtn = addButton(new GuiDropDownButton(2, 140, 30, 160, 20, ""));
 		BlockStateType type;
 		if (blockStateEntry != null) {
 			type = blockStateEntry.blockstateType;
+		} else if (modelTypeBtn != null) {
+			type = BlockStateType.values()[modelTypeBtn.getSelectedButtonIndex()];
 		} else {
 			type = BlockStateType.SIMPLE;
 		}
-		BlockStateModelEntry beforeBlockStateModel = selectBlockModelButton != null ? selectBlockModelButton.modelEntry : blockStateEntry != null ? blockStateEntry.blockStateModelEntry : null;
-		selectBlockModelButton = addButton(new GuiSelectBlockModelButton(this, 3, 140, 60, 80, 80, beforeBlockStateModel));
+		modelTypeBtn = addButton(new GuiDropDownButton(2, 140, 30, 160, 20, ""));
+		if (selectBlockModelButton != null)
+			selectBlockModelButton = addButton(new GuiSelectBlockModelButton(this, 3, 140, 60, 80, 80, selectBlockModelButton));
+		else
+			selectBlockModelButton = addButton(new GuiSelectBlockModelButton(this, 3, 140, 60, 80, 80, blockStateEntry));
 
 		BlockStateType[] values = BlockStateType.values();
 		for (int i = 0; i < values.length; i++) {
@@ -67,7 +70,7 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 	}
 
 	public BlockStateEntry getModelEntry() {
-		return new BlockStateEntry(BlockStateType.values()[modelTypeBtn.getSelectedButtonIndex()], selectBlockModelButton.modelEntry);
+		return new BlockStateEntry(getBlockStateType(), selectBlockModelButton.blockModelGroupId, selectBlockModelButton.rotationX, selectBlockModelButton.rotationY, ImmutableMap.of());
 	}
 
 	@Override
@@ -101,6 +104,8 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
 		if (modelTypeBtn.isExtended()) {
 			modelTypeBtn.postMouseClicked(mc, mouseX, mouseY);
+			selectBlockModelButton.setBlockModelGroupType(getBlockStateType().getModelGroupType());
+			checkValid();
 			return;
 		}
 		super.mouseClicked(mouseX, mouseY, mouseButton);
@@ -121,9 +126,7 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 		if (modelTypeBtn.isExtended())
 			Gui.drawRect(0, 0, width, height, 0x80000000);
 		modelTypeBtn.drawButton(mc, mouseX, mouseY, partialTicks);
-		if (selectBlockModelButton.mousePressed(mc, mouseX, mouseY)) {
-			drawHoveringText(Arrays.asList(I18n.format("gui.ingame_custom_stuff.configure_block_state.edit_rotation_hovering_text1"), I18n.format("gui.ingame_custom_stuff.configure_block_state.edit_rotation_hovering_text2")), mouseX, mouseY, fontRenderer);
-		}
+		selectBlockModelButton.postDraw(mc, mouseX, mouseY, partialTicks);
 	}
 
 	@Override
@@ -133,7 +136,11 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 
 
 	private void checkValid() {
-		doneButton.enabled = selectBlockModelButton.modelEntry != null;
+		doneButton.enabled = selectBlockModelButton.blockModelGroupId != null;
+	}
+
+	private BlockStateType getBlockStateType() {
+		return BlockStateType.values()[modelTypeBtn.getSelectedButtonIndex()];
 	}
 
 	private static String getString(BlockStateType blockstateType) {

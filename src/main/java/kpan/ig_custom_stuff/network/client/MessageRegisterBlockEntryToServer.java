@@ -11,10 +11,9 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.server.MessageRegisterBlockEntryToClient;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
-import kpan.ig_custom_stuff.resource.IdConverter;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -52,7 +51,7 @@ public class MessageRegisterBlockEntryToServer extends MessageBase {
 	public void doAction(MessageContext ctx) {
 		EntityPlayerMP sender = ctx.getServerHandler().player;
 		MinecraftServer server = sender.server;
-		ResourceLocation blockId = blockEntry.blockId;
+		BlockId blockId = blockEntry.blockId;
 		if (MCRegistryUtil.getBlockIdErrorMessage(blockId) != null) {
 			ModMain.LOGGER.info("INVALID PACKET:blockId \"" + blockId + "\" is invalid(" + MCRegistryUtil.getBlockIdErrorMessage(blockId) + ")");
 			if (MCRegistryUtil.isBlockRegistered(blockId))
@@ -66,7 +65,7 @@ public class MessageRegisterBlockEntryToServer extends MessageBase {
 			try {
 				ModMain.LOGGER.error("Failed to save a block file", e);
 				ModMain.LOGGER.error("Trying again...");
-				blockStateEntry.register(blockEntry.blockId, false);
+				blockStateEntry.register(blockId, false);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save a block file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.register.block", blockId);
@@ -75,12 +74,12 @@ public class MessageRegisterBlockEntryToServer extends MessageBase {
 			}
 		}
 		try {
-			blockStateEntry.register(blockEntry.blockId, false);
+			blockStateEntry.register(blockId, false);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to save a blockstate file", e);
 				ModMain.LOGGER.error("Trying again...");
-				blockStateEntry.register(blockEntry.blockId, false);
+				blockStateEntry.register(blockId, false);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save a blockstate file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.register.block_state", blockId);
@@ -88,12 +87,12 @@ public class MessageRegisterBlockEntryToServer extends MessageBase {
 			}
 		}
 		try {
-			blockLangEntry.register(blockEntry.blockId, false);
+			blockLangEntry.register(blockId, false);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to save a lang file", e);
 				ModMain.LOGGER.error("Trying again...");
-				blockLangEntry.register(blockEntry.blockId, false);
+				blockLangEntry.register(blockId, false);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save a lang file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.register.block_lang", blockId);
@@ -101,12 +100,12 @@ public class MessageRegisterBlockEntryToServer extends MessageBase {
 			}
 		}
 		try {
-			Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockStateModelEntry.blockModelId);
+			Server.INSTANCE.setItemBlockModel(blockId.toItemId().toModelId(), blockStateEntry);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to save an item block model file", e);
 				ModMain.LOGGER.error("Trying again...");
-				Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockStateModelEntry.blockModelId);
+				Server.INSTANCE.setItemBlockModel(blockId.toItemId().toModelId(), blockStateEntry);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save an item block model file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.register.item_block_model", blockId);

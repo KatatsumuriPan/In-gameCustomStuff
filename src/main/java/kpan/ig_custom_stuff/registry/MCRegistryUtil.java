@@ -16,6 +16,8 @@ import kpan.ig_custom_stuff.item.ItemPropertyEntry;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.RemovedResourcesResourcePack;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import kpan.ig_custom_stuff.util.MyReflectionHelper;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -48,10 +50,10 @@ public class MCRegistryUtil {
 
 	public static final ForgeRegistry<Item> ITEM_REGISTRY = RegistryManager.ACTIVE.getRegistry(GameData.ITEMS);
 	public static final ForgeRegistry<Block> BLOCK_REGISTRY = RegistryManager.ACTIVE.getRegistry(GameData.BLOCKS);
-	private static final BiMap<ResourceLocation, ItemEntry> ITEMS = HashBiMap.create();
-	private static final BiMap<ResourceLocation, BlockEntry> BLOCKS = HashBiMap.create();
-	private static final Set<ResourceLocation> removedItems = new HashSet<>();
-	private static final Set<ResourceLocation> removedBlocks = new HashSet<>();
+	private static final BiMap<ItemId, ItemEntry> ITEMS = HashBiMap.create();
+	private static final BiMap<BlockId, BlockEntry> BLOCKS = HashBiMap.create();
+	private static final Set<ItemId> removedItems = new HashSet<>();
+	private static final Set<BlockId> removedBlocks = new HashSet<>();
 
 	public static void register(ItemEntry itemEntry, boolean isRemote) {
 		//レジストリ登録が必ず先になる必要あり
@@ -62,7 +64,7 @@ public class MCRegistryUtil {
 			return;
 		DynamicItemBase item;
 		if (removedItems.contains(itemEntry.itemId)) {
-			item = (DynamicItemBase) ITEM_REGISTRY.getValue(itemEntry.itemId);
+			item = (DynamicItemBase) ITEM_REGISTRY.getValue(itemEntry.itemId.toResourceLocation());
 			if (item == null)
 				throw new IllegalStateException(itemEntry.itemId + " is not registered!?");
 			removedItems.remove(itemEntry.itemId);
@@ -77,9 +79,9 @@ public class MCRegistryUtil {
 		}
 		ITEMS.put(itemEntry.itemId, itemEntry);
 	}
-	private static void registerItemModel(ResourceLocation itemId, Item item) {
+	private static void registerItemModel(ItemId itemId, Item item) {
 		//register
-		ModelResourceLocation modelResourceLocation = new ModelResourceLocation(itemId, "inventory");
+		ModelResourceLocation modelResourceLocation = new ModelResourceLocation(itemId.toItemModelName(), "inventory");
 		ModelLoader.setCustomModelResourceLocation(item, 0, modelResourceLocation);
 
 		//以降手動登録後の処理の再現
@@ -104,20 +106,20 @@ public class MCRegistryUtil {
 		if (!ITEMS.containsKey(itemEntry.itemId))
 			throw new IllegalStateException(itemEntry.itemId + " is not registered!");
 		ITEMS.put(itemEntry.itemId, itemEntry);
-		DynamicItemBase item = (DynamicItemBase) ITEM_REGISTRY.getValue(itemEntry.itemId);
+		DynamicItemBase item = (DynamicItemBase) ITEM_REGISTRY.getValue(itemEntry.itemId.toResourceLocation());
 		item.setProperty(itemEntry.propertyEntry);
 	}
 
-	public static boolean isItemRegistered(ResourceLocation itemId) {
+	public static boolean isItemRegistered(ItemId itemId) {
 		return ITEMS.containsKey(itemId);
 	}
 
 	@Nullable
-	public static ItemEntry getItem(ResourceLocation itemId) {
+	public static ItemEntry getItem(ItemId itemId) {
 		return ITEMS.get(itemId);
 	}
 
-	public static void removeItem(ResourceLocation itemId, boolean isRemote) {
+	public static void removeItem(ItemId itemId, boolean isRemote) {
 		//シングルでは、サーバーとクライアントのスレッドの実行順は不定なので全てクライアント側で処理する
 		if (!isRemote && ModMain.proxy.hasClientSide())
 			return;
@@ -133,12 +135,12 @@ public class MCRegistryUtil {
 			register(itemEntry, true);
 		}
 	}
-	public static void syncClientItemRegistryDedicated(Collection<ItemEntry> serverRegistry, Collection<ResourceLocation> removedItemIds) {
+	public static void syncClientItemRegistryDedicated(Collection<ItemEntry> serverRegistry, Collection<ItemId> removedItemIds) {
 		clearItems();
 		for (ItemEntry itemEntry : serverRegistry) {
 			register(itemEntry, true);
 		}
-		for (ResourceLocation removedItemId : removedItemIds) {
+		for (ItemId removedItemId : removedItemIds) {
 			Item item = new DynamicItemBase(removedItemId, ItemPropertyEntry.defaultOption());
 			ITEM_REGISTRY.unfreeze();
 			ITEM_REGISTRY.register(item);
@@ -147,9 +149,9 @@ public class MCRegistryUtil {
 		}
 		removedItems.addAll(removedItemIds);
 		DynamicResourceLoader.loadItemModels(removedItemIds);
-		for (ResourceLocation removedItemId : removedItemIds) {
+		for (ItemId removedItemId : removedItemIds) {
 			try {
-				BlockLangEntry.removedItem().register(removedItemId, true);
+				BlockLangEntry.removedItem().register(removedItemId.toBlockId(), true);
 			} catch (IOException e) {
 				Client.sendMessage(new TextComponentString(e.getMessage()));
 			}
@@ -160,37 +162,37 @@ public class MCRegistryUtil {
 		//RenderItem
 		//register
 		ItemModelMesher itemModelMesher = Minecraft.getMinecraft().getRenderItem().getItemModelMesher();
-		for (ResourceLocation itemId : ITEMS.keySet()) {
-			Item item = ITEM_REGISTRY.getValue(itemId);
-			ModelResourceLocation modelResourceLocation = new ModelResourceLocation(itemId, "inventory");
+		for (ItemId itemId : ITEMS.keySet()) {
+			Item item = ITEM_REGISTRY.getValue(itemId.toResourceLocation());
+			ModelResourceLocation modelResourceLocation = new ModelResourceLocation(itemId.toItemModelName(), "inventory");
 			itemModelMesher.register(item, 0, modelResourceLocation);
 		}
-		for (ResourceLocation blockId : BLOCKS.keySet()) {
-			Item item = ITEM_REGISTRY.getValue(blockId);
-			ModelResourceLocation modelResourceLocation = new ModelResourceLocation(blockId, "inventory");
+		for (BlockId blockId : BLOCKS.keySet()) {
+			Item item = ITEM_REGISTRY.getValue(blockId.toItemId().toResourceLocation());
+			ModelResourceLocation modelResourceLocation = new ModelResourceLocation(blockId.toBlockModelName(), "inventory");
 			itemModelMesher.register(item, 0, modelResourceLocation);
 		}
 	}
 
-	public static Collection<ResourceLocation> getItemIds() {
+	public static Collection<ItemId> getItemIds() {
 		return ITEMS.keySet();
 	}
-	public static Collection<ResourceLocation> getRemovedItemIds() {
+	public static Collection<ItemId> getRemovedItemIds() {
 		return removedItems;
 	}
 
 	@Nullable
-	public static String getItemIdErrorMessage(ResourceLocation itemId) {
+	public static String getItemIdErrorMessage(ItemId itemId) {
 		if (itemId.toString().length() > DynamicResourceManager.ID_MAX_LENGTH)
 			return I18n.format("gui.ingame_custom_stuff.error.id.too_long", DynamicResourceManager.ID_MAX_LENGTH);
-		String namespace = itemId.getNamespace();
+		String namespace = itemId.namespace;
 		if (namespace.isEmpty())
 			return "gui.ingame_custom_stuff.error.namespace.empty";
-		if (itemId.getPath().isEmpty())
+		if (itemId.name.isEmpty())
 			return "gui.ingame_custom_stuff.error.path.empty";
 		if (namespace.equals("minecraft") || namespace.equals("forge") || namespace.equals(ModTagsGenerated.MODID))
 			return I18n.format("gui.ingame_custom_stuff.error.namespace.not_allowed", namespace);
-		if (!itemId.getPath().matches("[a-z0-9_]+"))
+		if (!itemId.name.matches("[a-z0-9_]+"))
 			return "gui.ingame_custom_stuff.error.allowed_id_characters";
 		if (MCRegistryUtil.isItemRegistered(itemId))
 			return "gui.ingame_custom_stuff.error.id_already_exists";
@@ -213,7 +215,7 @@ public class MCRegistryUtil {
 			return I18n.format("gui.ingame_custom_stuff.error.namespace.not_allowed", namespace);
 		if (!namespace.matches("[a-z0-9_]+") || !path.matches("[a-z0-9_]+"))
 			return "gui.ingame_custom_stuff.error.allowed_id_characters";
-		if (MCRegistryUtil.isItemRegistered(new ResourceLocation(itemId)))
+		if (MCRegistryUtil.isItemRegistered(new ItemId(new ResourceLocation(itemId))))
 			return "gui.ingame_custom_stuff.error.id_already_exists";
 		return null;
 	}
@@ -222,7 +224,7 @@ public class MCRegistryUtil {
 		RemovedResourcesResourcePack.INSTANCE.clearAll();//直後にclearBlocksも呼ばれるはず
 		BiMap<Integer, Item> ids = MyReflectionHelper.getPrivateField(ITEM_REGISTRY, "ids");
 		BiMap<ResourceLocation, Item> names = MyReflectionHelper.getPrivateField(ITEM_REGISTRY, "names");
-		for (ResourceLocation itemId : ITEMS.keySet()) {
+		for (ItemId itemId : ITEMS.keySet()) {
 			if (!names.containsKey(itemId))
 				continue;//integrated server
 			Item value = names.remove(itemId);
@@ -244,12 +246,12 @@ public class MCRegistryUtil {
 		//シングルでは、サーバーとクライアントのスレッドの実行順は不定なので全てクライアント側で処理する
 		if (!isRemote && ModMain.proxy.hasClientSide())
 			return;
-		ResourceLocation blockId = blockEntry.blockId;
+		BlockId blockId = blockEntry.blockId;
 		if (BLOCKS.containsKey(blockId))
 			return;
 		DynamicBlockBase block;
 		if (removedBlocks.contains(blockId)) {
-			block = (DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId);
+			block = (DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId.toResourceLocation());
 			if (block == null)
 				throw new IllegalStateException(blockId + " is not registered!?");
 			block.setProperty(blockEntry.basicProperty);
@@ -270,11 +272,12 @@ public class MCRegistryUtil {
 
 		//item
 		ItemDynamicBlockBase item;
-		if (removedItems.contains(blockId)) {
-			item = (ItemDynamicBlockBase) ITEM_REGISTRY.getValue(blockId);
+		ItemId itemId = blockId.toItemId();
+		if (removedItems.contains(itemId)) {
+			item = (ItemDynamicBlockBase) ITEM_REGISTRY.getValue(itemId.toResourceLocation());
 			if (item == null)
-				throw new IllegalStateException(blockId + " is not registered!?");
-			removedItems.remove(blockId);
+				throw new IllegalStateException(itemId + " is not registered!?");
+			removedItems.remove(itemId);
 		} else {
 			item = new ItemDynamicBlockBase(block);
 			ITEM_REGISTRY.unfreeze();
@@ -282,7 +285,7 @@ public class MCRegistryUtil {
 			ITEM_REGISTRY.freeze();
 		}
 		if (isRemote) {
-			registerItemModel(blockId, item);
+			registerItemModel(itemId, item);
 		}
 	}
 
@@ -290,37 +293,38 @@ public class MCRegistryUtil {
 		//シングルでは、サーバーとクライアントのスレッドの実行順は不定なので全てクライアント側で処理する
 		if (!isRemote && ModMain.proxy.hasClientSide())
 			return;
-		ResourceLocation blockId = blockEntry.blockId;
+		BlockId blockId = blockEntry.blockId;
 		if (!BLOCKS.containsKey(blockId))
 			throw new IllegalStateException(blockId + " is not registered!");
 		BLOCKS.put(blockId, blockEntry);
-		DynamicBlockBase block = (DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId);
+		DynamicBlockBase block = (DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId.toResourceLocation());
 		block.setProperty(blockEntry.basicProperty);
 		block.setBlockStateType(blockEntry.blockStateType);
 	}
 
-	public static boolean isBlockRegistered(ResourceLocation blockId) {
+	public static boolean isBlockRegistered(BlockId blockId) {
 		return BLOCKS.containsKey(blockId);
 	}
 
 	@Nullable
-	public static BlockEntry getBlock(ResourceLocation blockId) {
+	public static BlockEntry getBlock(BlockId blockId) {
 		return BLOCKS.get(blockId);
 	}
 
-	public static void removeBlock(ResourceLocation blockId, boolean isRemote) {
+	public static void removeBlock(BlockId blockId, boolean isRemote) {
 		//シングルでは、サーバーとクライアントのスレッドの実行順は不定なので全てクライアント側で処理する
 		if (!isRemote && ModMain.proxy.hasClientSide())
 			return;
 		if (BLOCKS.remove(blockId) == null)
 			return;
 		removedBlocks.add(blockId);
-		((DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId)).setProperty(BlockPropertyEntry.forRemovedBlock());
-		((DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId)).setBlockStateType(BlockStateType.SIMPLE);
-		((DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId)).setRemoved(true);
+		DynamicBlockBase block = (DynamicBlockBase) BLOCK_REGISTRY.getValue(blockId.toResourceLocation());
+		block.setProperty(BlockPropertyEntry.forRemovedBlock());
+		block.setBlockStateType(BlockStateType.SIMPLE);
+		block.setRemoved(true);
 	}
 
-	public static boolean isRemovedBlock(ResourceLocation blockId) {
+	public static boolean isRemovedBlock(BlockId blockId) {
 		return removedBlocks.contains(blockId);
 	}
 
@@ -330,12 +334,12 @@ public class MCRegistryUtil {
 			register(entry, true);
 		}
 	}
-	public static void syncClientBlockRegistryDedicated(Collection<BlockEntry> serverRegistry, Collection<ResourceLocation> removedBlockIds) {
+	public static void syncClientBlockRegistryDedicated(Collection<BlockEntry> serverRegistry, Collection<BlockId> removedBlockIds) {
 		clearBlocks();
 		for (BlockEntry entry : serverRegistry) {
 			register(entry, true);
 		}
-		for (ResourceLocation removedBlockId : removedBlockIds) {
+		for (BlockId removedBlockId : removedBlockIds) {
 			DynamicBlockBase block = new DynamicBlockBase(removedBlockId, BlockStateType.SIMPLE, BlockPropertyEntry.forRemovedBlock());
 			block.setRemoved(true);
 			BLOCK_REGISTRY.unfreeze();
@@ -349,7 +353,7 @@ public class MCRegistryUtil {
 			DynamicResourceLoader.loadBlockResources(removedBlockId);
 		}
 		removedBlocks.addAll(removedBlockIds);
-		for (ResourceLocation removedBlockId : removedBlockIds) {
+		for (BlockId removedBlockId : removedBlockIds) {
 			try {
 				BlockLangEntry.removedBlock().register(removedBlockId, true);
 			} catch (IOException e) {
@@ -358,29 +362,29 @@ public class MCRegistryUtil {
 		}
 	}
 
-	public static Collection<ResourceLocation> getBlockIds() {
+	public static Collection<BlockId> getBlockIds() {
 		return BLOCKS.keySet();
 	}
-	public static Collection<ResourceLocation> getRemovedBlockIds() {
+	public static Collection<BlockId> getRemovedBlockIds() {
 		return removedBlocks;
 	}
 
 	@Nullable
-	public static String getBlockIdErrorMessage(ResourceLocation blockId) {
+	public static String getBlockIdErrorMessage(BlockId blockId) {
 		if (blockId.toString().length() > DynamicResourceManager.ID_MAX_LENGTH)
 			return I18n.format("gui.ingame_custom_stuff.error.id.too_long", DynamicResourceManager.ID_MAX_LENGTH);
-		String namespace = blockId.getNamespace();
+		String namespace = blockId.namespace;
 		if (namespace.isEmpty())
 			return "gui.ingame_custom_stuff.error.namespace.empty";
-		if (blockId.getPath().isEmpty())
+		if (blockId.name.isEmpty())
 			return "gui.ingame_custom_stuff.error.path.empty";
 		if (namespace.equals("minecraft") || namespace.equals("forge") || namespace.equals(ModTagsGenerated.MODID))
 			return I18n.format("gui.ingame_custom_stuff.error.namespace.not_allowed", namespace);
-		if (!blockId.getPath().matches("[a-z0-9_]+"))
+		if (!blockId.name.matches("[a-z0-9_]+"))
 			return "gui.ingame_custom_stuff.error.allowed_id_characters";
 		if (MCRegistryUtil.isBlockRegistered(blockId))
 			return "gui.ingame_custom_stuff.error.id_already_exists";
-		if (MCRegistryUtil.isItemRegistered(blockId))
+		if (MCRegistryUtil.isItemRegistered(blockId.toItemId()))
 			return "gui.ingame_custom_stuff.error.same_item_id_already_exists";
 		return null;
 	}
@@ -400,9 +404,9 @@ public class MCRegistryUtil {
 			return I18n.format("gui.ingame_custom_stuff.error.namespace.not_allowed", namespace);
 		if (!namespace.matches("[a-z0-9_]+") || !path.matches("[a-z0-9_]+"))
 			return "gui.ingame_custom_stuff.error.allowed_id_characters";
-		if (MCRegistryUtil.isBlockRegistered(new ResourceLocation(blockId)))
+		if (MCRegistryUtil.isBlockRegistered(new BlockId(new ResourceLocation(blockId))))
 			return "gui.ingame_custom_stuff.error.id_already_exists";
-		if (MCRegistryUtil.isItemRegistered(new ResourceLocation(blockId)))
+		if (MCRegistryUtil.isItemRegistered(new BlockId(new ResourceLocation(blockId)).toItemId()))
 			return "gui.ingame_custom_stuff.error.same_item_id_already_exists";
 		return null;
 	}
@@ -411,10 +415,10 @@ public class MCRegistryUtil {
 		//RemovedResourcesResourcePack.INSTANCE.clearAll();//直前にclearItemsが呼ばれてるはず
 		BiMap<Integer, Block> ids = MyReflectionHelper.getPrivateField(BLOCK_REGISTRY, "ids");
 		BiMap<ResourceLocation, Block> names = MyReflectionHelper.getPrivateField(BLOCK_REGISTRY, "names");
-		for (ResourceLocation blockId : BLOCKS.keySet()) {
-			if (!names.containsKey(blockId))
+		for (BlockId blockId : BLOCKS.keySet()) {
+			if (!names.containsKey(blockId.toResourceLocation()))
 				continue;//integrated server
-			Block value = names.remove(blockId);
+			Block value = names.remove(blockId.toResourceLocation());
 			if (value == null)
 				throw new IllegalStateException("Removed a entry that did not have an associated id: " + blockId + " This should never happen unless hackery!");
 			Integer id = ids.inverse().remove(value);
@@ -426,7 +430,7 @@ public class MCRegistryUtil {
 	}
 
 
-	private class Client {
+	private static class Client {
 		public static void sendMessage(ITextComponent textComponent) {
 			Minecraft.getMinecraft().player.sendMessage(textComponent);
 		}

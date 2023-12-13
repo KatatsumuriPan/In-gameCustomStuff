@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import kpan.ig_custom_stuff.ModMain;
 import kpan.ig_custom_stuff.asm.acc.ACC_Stitcher;
 import kpan.ig_custom_stuff.asm.acc.ACC_TextureMap;
+import kpan.ig_custom_stuff.resource.ids.ITextureId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.texture.PngSizeInfo;
@@ -53,36 +54,34 @@ public class StitchManager {
 		}
 	}
 
-	public static void loadTexturesDynamic(ResourceLocation... textureIds) throws StitchFullSpaceException {
-		loadTexturesDynamic(Lists.newArrayList(textureIds));
-	}
-	public static void loadTexturesDynamic(Iterable<ResourceLocation> textureIds) throws StitchFullSpaceException {
+	public static <T extends ITextureId> void loadTexturesDynamic(Iterable<T> textureIds) throws StitchFullSpaceException {
 		TextureMap textureMap = Minecraft.getMinecraft().getTextureMapBlocks();
 		IResourceManager resourceManager = Minecraft.getMinecraft().getResourceManager();
 		Stitcher stitcher = ((ACC_TextureMap) textureMap).get_stitcher();
 
-		for (ResourceLocation textureId : textureIds) {
-			String textureIdString = textureId.toString();
-			try (IResource resource = resourceManager.getResource(getActualLocation(textureId))) {
+		for (T textureId : textureIds) {
+			ResourceLocation textureIdResourceLocation = textureId.toResourceLocation();
+			String textureIdString = textureIdResourceLocation.toString();
+			try (IResource resource = resourceManager.getResource(getActualLocation(textureIdResourceLocation))) {
 				int value = calcCRC32(resource);
-				if (loadedTextureHash.containsKey(textureId) && loadedTextureHash.get(textureId) == value) {
+				if (loadedTextureHash.containsKey(textureIdResourceLocation) && loadedTextureHash.get(textureIdResourceLocation) == value) {
 					if (DynamicResourceLoader.unregisteredTextureCache.containsKey(textureId)) {
 						textureMap.mapRegisteredSprites.put(textureIdString, DynamicResourceLoader.unregisteredTextureCache.get(textureId));
 						textureMap.mapUploadedSprites.put(textureIdString, textureMap.mapRegisteredSprites.get(textureIdString));
-						updateAnimation(textureId);
-						DynamicResourceLoader.reloadTextureDependantsModel(textureId);
+						updateAnimation(textureIdResourceLocation);
+						DynamicResourceLoader.reloadTextureDependantsModel(textureId.toResourceLocation());
 					} else {
-						updateAnimation(textureId);
+						updateAnimation(textureIdResourceLocation);
 					}
 					continue;
 				}
 				DynamicResourceLoader.unregisteredTextureCache.remove(textureId);
-				loadedTextureHash.put(textureId, value);
-				DynamicResourceLoader.reloadTextureDependantsModel(textureId);
+				loadedTextureHash.put(textureIdResourceLocation, value);
+				DynamicResourceLoader.reloadTextureDependantsModel(textureId.toResourceLocation());
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-			TextureAtlasSprite textureAtlasSprite = textureMap.registerSprite(textureId);
+			TextureAtlasSprite textureAtlasSprite = textureMap.registerSprite(textureIdResourceLocation);
 			textureMap.mapRegisteredSprites.put(textureIdString, textureAtlasSprite);
 			loadTexture(stitcher, resourceManager, textureAtlasSprite, 1 << textureMap.getMipmapLevels());
 		}
@@ -162,7 +161,7 @@ public class StitchManager {
 	private static void finishLoading(Stitcher stitcher, TextureMap textureMap) throws StitchFullSpaceException {
 		doStitch(stitcher);
 
-		ModMain.LOGGER.info("Created: {}x{} {}-atlas", stitcher.currentWidth, stitcher.currentHeight, textureMap.getBasePath());
+		ModMain.LOGGER.info("Using: {}x{} {}-atlas", stitcher.currentWidth, stitcher.currentHeight, textureMap.getBasePath());
 		GlStateManager.bindTexture(textureMap.getGlTextureId());
 
 		for (TextureAtlasSprite sprite : getStitchSlots(stitcher)) {

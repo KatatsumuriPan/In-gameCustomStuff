@@ -7,8 +7,9 @@ import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.ITextureId;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -20,9 +21,12 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -138,13 +142,15 @@ public class MessageSyncResourcePack extends MessageBase {
 		public static void saveAndLoad(FileDatas fileDatas) {
 			fileDatas.toFileSystem(ClientCache.resourcePackPath);
 			DynamicResourceManager.ClientCache.readFromFolder();
-			DynamicResourceLoader.loadTexturesDynamic(ClientCache.INSTANCE.blockTextureIds.keySet());
-			DynamicResourceLoader.loadTexturesDynamic(ClientCache.INSTANCE.itemTextureIds.keySet());
+			List<ITextureId> textureIds = new ArrayList<>();
+			textureIds.addAll(ClientCache.INSTANCE.blockTextureIds.keySet());
+			textureIds.addAll(ClientCache.INSTANCE.itemTextureIds.keySet());
+			DynamicResourceLoader.loadTexturesDynamic(textureIds);
 			DynamicResourceLoader.loadItemModels(ClientCache.INSTANCE);
-			for (ResourceLocation blockId : MCRegistryUtil.getBlockIds()) {
+			for (BlockId blockId : MCRegistryUtil.getBlockIds()) {
 				DynamicResourceLoader.loadBlockModel(blockId);
 			}
-			DynamicResourceLoader.loadItemModels(MCRegistryUtil.getBlockIds());
+			DynamicResourceLoader.loadItemModels(MCRegistryUtil.getBlockIds().stream().map(BlockId::toItemId).collect(Collectors.toList()));
 			MCRegistryUtil.reloadItemModelMeshes();
 			SingleBlockModelLoader.loadBlockModels(ClientCache.INSTANCE.blockModelIds.keySet());
 			for (Entry<String, Map<String, Map<String, String>>> namespacedLang : ClientCache.INSTANCE.lang.entrySet()) {

@@ -11,8 +11,9 @@ import kpan.ig_custom_stuff.item.ItemEntry.ItemEntryJson;
 import kpan.ig_custom_stuff.item.ItemLangEntry;
 import kpan.ig_custom_stuff.item.model.ItemModelEntry;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -28,11 +29,11 @@ public class DynamicServerRegistryManager {
 
 	@Nullable
 	private static Path registryPath = null;
-	private static final Map<ResourceLocation, ItemEntry> items = new HashMap<>();
-	private static final Map<ResourceLocation, BlockEntry> blocks = new HashMap<>();
+	private static final Map<ItemId, ItemEntry> items = new HashMap<>();
+	private static final Map<BlockId, BlockEntry> blocks = new HashMap<>();
 
 	@Nullable
-	public static ItemEntry getItem(ResourceLocation itemId) {
+	public static ItemEntry getItem(ItemId itemId) {
 		return items.get(itemId);
 	}
 
@@ -55,7 +56,7 @@ public class DynamicServerRegistryManager {
 						try {
 							String json = new String(Files.readAllBytes(p), StandardCharsets.UTF_8);
 							ItemEntryJson itemEntryJson = ItemEntryJson.fromJson(json);
-							ResourceLocation itemId = new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.')));
+							ItemId itemId = new ItemId(namespace, path.substring(0, path.lastIndexOf('.')));
 							items.put(itemId, new ItemEntry(itemId, itemEntryJson.propertyEntry));
 							if (Server.INSTANCE.getItemModel(itemId) == null) {
 								ModMain.LOGGER.info("An item model of {} is not found.", itemId);
@@ -65,7 +66,7 @@ public class DynamicServerRegistryManager {
 							if (!Server.INSTANCE.hasItemNameLang("en_us", itemId)) {
 								ModMain.LOGGER.info("A lang of {} is not found.", itemId);
 								ModMain.LOGGER.info("Try add default lang.");
-								ItemLangEntry.defaultLang(itemId.getPath()).register(itemId, false);
+								ItemLangEntry.defaultLang(itemId.name).register(itemId, false);
 							}
 						} catch (IOException e) {
 							throw new RuntimeException(e);
@@ -97,7 +98,7 @@ public class DynamicServerRegistryManager {
 		items.put(itemEntry.itemId, itemEntry);
 		MCRegistryUtil.update(itemEntry, false);
 	}
-	public static void unregisterItem(ResourceLocation itemId) throws IOException {
+	public static void unregisterItem(ItemId itemId) throws IOException {
 		deleteItemFile(itemId);
 		items.remove(itemId);
 		MCRegistryUtil.removeItem(itemId, false);
@@ -105,14 +106,14 @@ public class DynamicServerRegistryManager {
 	private static void saveFile(ItemEntry itemEntry) throws IOException {
 		if (registryPath == null)
 			throw new IllegalStateException("registryPath is null!");
-		Path path = registryPath.resolve("item").resolve(itemEntry.itemId.getNamespace()).resolve(itemEntry.itemId.getPath() + ".json");
+		Path path = registryPath.resolve("item").resolve(itemEntry.itemId.namespace).resolve(itemEntry.itemId.name + ".json");
 		Files.createDirectories(path.getParent());
 		Files.write(path, itemEntry.toJson().getBytes(StandardCharsets.UTF_8));
 	}
-	private static void deleteItemFile(ResourceLocation itemId) throws IOException {
+	private static void deleteItemFile(ItemId itemId) throws IOException {
 		if (registryPath == null)
 			throw new IllegalStateException("registryPath is null!");
-		Path path = registryPath.resolve("item").resolve(itemId.getNamespace()).resolve(itemId.getPath() + ".json");
+		Path path = registryPath.resolve("item").resolve(itemId.namespace).resolve(itemId.name + ".json");
 		Files.delete(path);
 	}
 	public static Collection<ItemEntry> getItemEntries() {
@@ -122,7 +123,7 @@ public class DynamicServerRegistryManager {
 	//block
 
 	@Nullable
-	public static BlockEntry getBlock(ResourceLocation blockId) {
+	public static BlockEntry getBlock(BlockId blockId) {
 		return blocks.get(blockId);
 	}
 
@@ -145,10 +146,10 @@ public class DynamicServerRegistryManager {
 						try {
 							String json = new String(Files.readAllBytes(p), StandardCharsets.UTF_8);
 							BlockEntryJson blockEntryJson = BlockEntryJson.fromJson(json);
-							ResourceLocation blockId = new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.')));
+							BlockId blockId = new BlockId(namespace, path.substring(0, path.lastIndexOf('.')));
 							blocks.put(blockId, new BlockEntry(blockId, blockEntryJson.blockStateType, blockEntryJson.propertyEntry));
 
-							if (Server.INSTANCE.getBlockState(blockId) == null) {
+							if (Server.INSTANCE.getBlockState(blockId.toBlockStateId()) == null) {
 								ModMain.LOGGER.info("A block state of {} is not found.", blockId);
 								ModMain.LOGGER.info("Try add default block state.");
 								Server.INSTANCE.addBlockstate(blockId, BlockStateEntry.defaultBlockState());
@@ -156,7 +157,7 @@ public class DynamicServerRegistryManager {
 							if (!Server.INSTANCE.hasBlockNameLang("en_us", blockId)) {
 								ModMain.LOGGER.info("A lang of {} is not found.", blockId);
 								ModMain.LOGGER.info("Try add default lang.");
-								BlockLangEntry.defaultLang(blockId.getPath()).register(blockId, false);
+								BlockLangEntry.defaultLang(blockId.name).register(blockId, false);
 							}
 						} catch (IOException e) {
 							throw new RuntimeException(e);
@@ -188,7 +189,7 @@ public class DynamicServerRegistryManager {
 		blocks.put(blockEntry.blockId, blockEntry);
 		MCRegistryUtil.update(blockEntry, false);
 	}
-	public static void unregisterBlock(ResourceLocation blockId) throws IOException {
+	public static void unregisterBlock(BlockId blockId) throws IOException {
 		deleteBlockFile(blockId);
 		blocks.remove(blockId);
 		MCRegistryUtil.removeBlock(blockId, false);
@@ -196,14 +197,14 @@ public class DynamicServerRegistryManager {
 	private static void saveFile(BlockEntry blockEntry) throws IOException {
 		if (registryPath == null)
 			throw new IllegalStateException("registryPath is null!");
-		Path path = registryPath.resolve("block").resolve(blockEntry.blockId.getNamespace()).resolve(blockEntry.blockId.getPath() + ".json");
+		Path path = registryPath.resolve("block").resolve(blockEntry.blockId.namespace).resolve(blockEntry.blockId.name + ".json");
 		Files.createDirectories(path.getParent());
 		Files.write(path, blockEntry.toJson().getBytes(StandardCharsets.UTF_8));
 	}
-	private static void deleteBlockFile(ResourceLocation blockId) throws IOException {
+	private static void deleteBlockFile(BlockId blockId) throws IOException {
 		if (registryPath == null)
 			throw new IllegalStateException("registryPath is null!");
-		Path path = registryPath.resolve("block").resolve(blockId.getNamespace()).resolve(blockId.getPath() + ".json");
+		Path path = registryPath.resolve("block").resolve(blockId.namespace).resolve(blockId.name + ".json");
 		Files.delete(path);
 	}
 	public static Collection<BlockEntry> getBlockEntries() {

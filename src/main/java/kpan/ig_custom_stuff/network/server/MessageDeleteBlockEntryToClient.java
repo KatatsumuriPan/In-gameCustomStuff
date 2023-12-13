@@ -7,11 +7,10 @@ import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
-import kpan.ig_custom_stuff.resource.IdConverter;
 import kpan.ig_custom_stuff.resource.RemovedResourcesResourcePack;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
@@ -22,20 +21,20 @@ public class MessageDeleteBlockEntryToClient extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageDeleteBlockEntryToClient() { }
 
-	private ResourceLocation blockId;
+	private BlockId blockId;
 
-	public MessageDeleteBlockEntryToClient(ResourceLocation blockId) {
+	public MessageDeleteBlockEntryToClient(BlockId blockId) {
 		this.blockId = blockId;
 	}
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
-		blockId = new ResourceLocation(readString(buf));
+		blockId = BlockId.formByteBuf(buf);
 	}
 
 	@Override
 	public void toBytes(ByteBuf buf) {
-		writeString(buf, blockId.toString());
+		blockId.writeTo(buf);
 	}
 
 	@Override
@@ -45,10 +44,10 @@ public class MessageDeleteBlockEntryToClient extends MessageBase {
 	}
 
 	private static class Client {
-		public static void doAction(ResourceLocation blockId) {
+		public static void doAction(BlockId blockId) {
 			try {
-				ClientCache.INSTANCE.removeBlockState(blockId);
-				ClientCache.INSTANCE.removeItemBlockModel(IdConverter.blockId2ItemModelId(blockId));
+				ClientCache.INSTANCE.removeBlockState(blockId.toBlockStateId());
+				ClientCache.INSTANCE.removeItemBlockModel(blockId.toItemId().toModelId());
 				ClientCache.INSTANCE.removeBlockNameLang("en_us", blockId);
 			} catch (IOException e) {
 				throw new RuntimeException(e);

@@ -103,6 +103,17 @@ public class BlockModelFaceEntry {
 		this.cullface = cullface;
 	}
 
+	public BlockModelFaceEntry subFace(float minU, float minV, float maxU, float maxV) {
+		if (rotation == 0)
+			return new BlockModelFaceEntry(textureTag, uv.subUV(minU, minV, maxU, maxV), rotation, cullface);
+		else if (rotation == 90)
+			return new BlockModelFaceEntry(textureTag, uv.subUV(minV, 1 - maxU, maxV, 1 - minU), rotation, cullface);
+		else if (rotation == 180)
+			return new BlockModelFaceEntry(textureTag, uv.subUV(1 - maxU, 1 - maxV, 1 - minU, 1 - minV), rotation, cullface);
+		else
+			return new BlockModelFaceEntry(textureTag, uv.subUV(1 - maxV, minU, 1 - minV, maxU), rotation, cullface);
+	}
+
 	public void writeTo(ByteBuf buf) {
 		MyByteBufUtil.writeString(buf, textureTag);
 		uv.writeTo(buf);

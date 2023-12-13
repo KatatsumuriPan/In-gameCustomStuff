@@ -6,6 +6,7 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageDeleteBlockModelsToServer;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import kpan.ig_custom_stuff.util.handlers.ClientEventHandler;
 import net.minecraft.client.gui.Gui;
@@ -15,14 +16,15 @@ import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.GuiYesNo;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.StringUtils;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 @SideOnly(Side.CLIENT)
 public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
@@ -50,11 +52,16 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 		deleteItemButton = addButton(new GuiButton(10, infoLeft, infoWidth + 40, infoWidth, 20, I18n.format("gui.delete")));
 		editItemButton = addButton(new GuiButton(11, infoLeft, infoWidth + 80, infoWidth, 20, I18n.format("gui.edit")));
 
-		blockModelList = new GuiBlockModelList(mc, infoLeft, height, 20, height - 30, SingleBlockModelLoader::getModels);
+		blockModelList = new GuiBlockModelList(mc, infoLeft, height, 20, height - 30, this::getModels);
 
 		deleteItemButton.enabled = false;
 		editItemButton.enabled = false;
 		blockModelList.applyVisiblePredicate(null);
+	}
+	private Collection<BlockModelGroupId> getModels() {
+		return ClientCache.INSTANCE.blockModelIds.entrySet().stream()
+				.map(entry -> new BlockModelGroupId(entry.getValue().modelType.toBlockModelGroupType(), entry.getKey()))
+				.collect(Collectors.toSet());
 	}
 
 	public void refreshList() {
@@ -73,7 +80,7 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 			parent.redisplay();
 		}
 		searchField.textboxKeyTyped(typedChar, keyCode);
-		blockModelList.applyVisiblePredicate(e -> StringUtils.containsIgnoreCase(e.modelId.toString(), searchField.getText()));
+		blockModelList.applyVisiblePredicate(e -> StringUtils.containsIgnoreCase(e.modelGroupId.toString(), searchField.getText()));
 	}
 
 	@Override
@@ -81,20 +88,27 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 		if (button.enabled) {
 			switch (button.id) {
 				case 0 -> parent.redisplay();
-				case 1 -> mc.displayGuiScreen(GuiAddEditBlockModel.add(this));
+				case 1 -> mc.displayGuiScreen(new GuiAddBlockModel(this));
 				case 10 -> {
 					mc.displayGuiScreen(new GuiYesNo((result, id) -> {
 						if (result)
-							MyPacketHandler.sendToServer(new MessageDeleteBlockModelsToServer(Collections.singletonList(blockModelList.getSelectedModelId())));
+							MyPacketHandler.sendToServer(new MessageDeleteBlockModelsToServer(new ArrayList<>(blockModelList.getSelectedModelGroupId().getBlockModelIds().values())));
 						redisplay();
-					}, I18n.format("gui.ingame_custom_stuff.block_model_menu.delete_block_model", blockModelList.getSelectedModelId()), I18n.format("gui.ingame_custom_stuff.warn.deleting_message"), 0));
+					}, I18n.format("gui.ingame_custom_stuff.block_model_menu.delete_block_model", blockModelList.getSelectedModelGroupId()), I18n.format("gui.ingame_custom_stuff.warn.deleting_message"), 0));
 				}
 				case 11 -> {
-					ResourceLocation modelId = blockModelList.getSelectedModelId();
-					BlockModelEntry model = ClientCache.INSTANCE.getBlockModel(modelId);
-					if (model == null)
-						throw new IllegalStateException();
-					mc.displayGuiScreen(GuiAddEditBlockModel.edit(this, modelId, model));
+					BlockModelGroupId modelGroupId = blockModelList.getSelectedModelGroupId();
+					switch (modelGroupId.blockModelGroupType) {
+						case NORMAL -> {
+							BlockModelEntry model = ClientCache.INSTANCE.getBlockModel(modelGroupId.getRenderModelId());
+							if (model == null)
+								throw new IllegalStateException();
+							mc.displayGuiScreen(GuiAddEditBlockModelNormal.edit(this, modelGroupId.getRenderModelId(), model));
+						}
+						case SLAB -> {
+							mc.displayGuiScreen(GuiAddEditBlockModelSlab.edit(this, modelGroupId));
+						}
+					}
 				}
 			}
 		}
@@ -109,12 +123,12 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 			int l = infoLeft + ((infoWidth - w) / 2);
 			Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
 			Gui.drawRect(l, 0, l + w, w, -1);
-			ResourceLocation modelId = blockModelList.getSelectedModelId();
-			if (modelId != null) {
-				IBakedModel model = SingleBlockModelLoader.getModel(modelId);
+			BlockModelGroupId modelGroupId = blockModelList.getSelectedModelGroupId();
+			if (modelGroupId != null) {
+				IBakedModel model = SingleBlockModelLoader.getModel(modelGroupId.getRenderModelId());
 				if (model != null)
 					RenderUtil.renderModel(l, 0, w / 16f, ClientEventHandler.tick * 2, 30, model);
-				BlockModelEntry modelEntry = ClientCache.INSTANCE.getBlockModel(modelId);
+				BlockModelEntry modelEntry = ClientCache.INSTANCE.getBlockModel(modelGroupId.getRenderModelId());
 				drawString(mc.fontRenderer, I18n.format("gui.ingame_custom_stuff.block_model_menu.block_model_type", modelEntry.getString()), infoLeft + 4, w + 4, -1);
 			}
 		}
@@ -129,8 +143,8 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		blockModelList.mouseClicked(mouseX, mouseY, mouseButton);
 		searchField.mouseClicked(mouseX, mouseY, mouseButton);
-		deleteItemButton.enabled = blockModelList.getSelectedModelId() != null;
-		editItemButton.enabled = blockModelList.getSelectedModelId() != null;
+		deleteItemButton.enabled = blockModelList.getSelectedModelGroupId() != null;
+		editItemButton.enabled = blockModelList.getSelectedModelGroupId() != null;
 	}
 
 	@Override

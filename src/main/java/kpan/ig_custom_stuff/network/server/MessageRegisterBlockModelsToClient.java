@@ -7,9 +7,9 @@ import kpan.ig_custom_stuff.network.MessageBase;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
@@ -23,9 +23,9 @@ public class MessageRegisterBlockModelsToClient extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageRegisterBlockModelsToClient() { }
 
-	private Map<ResourceLocation, BlockModelEntry> modelId2Entry;
+	private Map<BlockModelId, BlockModelEntry> modelId2Entry;
 
-	public MessageRegisterBlockModelsToClient(Map<ResourceLocation, BlockModelEntry> modelId2Entry) {
+	public MessageRegisterBlockModelsToClient(Map<BlockModelId, BlockModelEntry> modelId2Entry) {
 		this.modelId2Entry = modelId2Entry;
 	}
 
@@ -34,7 +34,7 @@ public class MessageRegisterBlockModelsToClient extends MessageBase {
 		int count = readVarInt(buf);
 		modelId2Entry = new HashMap<>();
 		for (int i = 0; i < count; i++) {
-			ResourceLocation modelId = new ResourceLocation(readString(buf));
+			BlockModelId modelId = BlockModelId.formByteBuf(buf);
 			BlockModelEntry blockModelEntry = BlockModelEntry.fromByteBuf(buf);
 			modelId2Entry.put(modelId, blockModelEntry);
 		}
@@ -42,8 +42,8 @@ public class MessageRegisterBlockModelsToClient extends MessageBase {
 	@Override
 	public void toBytes(ByteBuf buf) {
 		writeVarInt(buf, modelId2Entry.size());
-		for (Entry<ResourceLocation, BlockModelEntry> e : modelId2Entry.entrySet()) {
-			writeString(buf, e.getKey().toString());
+		for (Entry<BlockModelId, BlockModelEntry> e : modelId2Entry.entrySet()) {
+			e.getKey().writeTo(buf);
 			e.getValue().writeTo(buf);
 		}
 	}
@@ -54,8 +54,8 @@ public class MessageRegisterBlockModelsToClient extends MessageBase {
 	}
 
 	private static class Client {
-		public static void saveAndLoad(Map<ResourceLocation, BlockModelEntry> files) {
-			for (Entry<ResourceLocation, BlockModelEntry> entry : files.entrySet()) {
+		public static void saveAndLoad(Map<BlockModelId, BlockModelEntry> files) {
+			for (Entry<BlockModelId, BlockModelEntry> entry : files.entrySet()) {
 				try {
 					ClientCache.INSTANCE.addBlockModel(entry.getKey(), entry.getValue());
 					SingleBlockModelLoader.loadBlockModel(entry.getKey());
@@ -63,7 +63,7 @@ public class MessageRegisterBlockModelsToClient extends MessageBase {
 					throw new RuntimeException(e);
 				}
 			}
-			for (ResourceLocation modelId : files.keySet()) {
+			for (BlockModelId modelId : files.keySet()) {
 				DynamicResourceLoader.reloadBlockModelDependants(modelId);
 			}
 			DynamicResourceLoader.reloadAllChunks();

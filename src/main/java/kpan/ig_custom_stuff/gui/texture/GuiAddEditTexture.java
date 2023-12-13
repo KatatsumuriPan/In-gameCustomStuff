@@ -10,6 +10,8 @@ import kpan.ig_custom_stuff.network.client.MessageReplaceTexturesToServer;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
 import kpan.ig_custom_stuff.resource.TextureAnimationEntry;
+import kpan.ig_custom_stuff.resource.ids.BlockTextureId;
+import kpan.ig_custom_stuff.resource.ids.ItemTextureId;
 import kpan.ig_custom_stuff.util.PngInfo;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -37,8 +39,8 @@ public class GuiAddEditTexture extends GuiScreen implements IMyGuiScreen {
 	public static GuiAddEditTexture add(IMyGuiScreen parent, boolean isItem) {
 		return new GuiAddEditTexture(parent, true, isItem, "");
 	}
-	public static GuiAddEditTexture edit(IMyGuiScreen parent, String textureId, boolean isItem) {
-		return new GuiAddEditTexture(parent, false, isItem, textureId);
+	public static GuiAddEditTexture edit(IMyGuiScreen parent, ResourceLocation textureId, boolean isItem) {
+		return new GuiAddEditTexture(parent, false, isItem, textureId.getNamespace() + ":" + textureId.getPath().substring(isItem ? "items/".length() : "blocks/".length()));
 	}
 
 	private final IMyGuiScreen parent;
@@ -151,14 +153,18 @@ public class GuiAddEditTexture extends GuiScreen implements IMyGuiScreen {
 				if (isItem) {
 					if (!textureId.getPath().contains("items/"))
 						textureId = new ResourceLocation(textureId.getNamespace(), "items/" + textureId.getPath());
+					if (isAdd)
+						MyPacketHandler.sendToServer(new MessageRegisterTexturesToServer(Collections.singletonMap(new ItemTextureId(textureId), Tuple2.apply(data, animationEntry)), Collections.emptyMap()));
+					else
+						MyPacketHandler.sendToServer(new MessageReplaceTexturesToServer(Collections.singletonMap(new ItemTextureId(textureId), Tuple2.apply(data, animationEntry)), Collections.emptyMap()));
 				} else {
 					if (!textureId.getPath().contains("blocks/"))
 						textureId = new ResourceLocation(textureId.getNamespace(), "blocks/" + textureId.getPath());
+					if (isAdd)
+						MyPacketHandler.sendToServer(new MessageRegisterTexturesToServer(Collections.emptyMap(), Collections.singletonMap(new BlockTextureId(textureId), Tuple2.apply(data, animationEntry))));
+					else
+						MyPacketHandler.sendToServer(new MessageReplaceTexturesToServer(Collections.emptyMap(), Collections.singletonMap(new BlockTextureId(textureId), Tuple2.apply(data, animationEntry))));
 				}
-				if (isAdd)
-					MyPacketHandler.sendToServer(new MessageRegisterTexturesToServer(Collections.singletonMap(textureId, Tuple2.apply(data, animationEntry))));
-				else
-					MyPacketHandler.sendToServer(new MessageReplaceTexturesToServer(Collections.singletonMap(textureId, Tuple2.apply(data, animationEntry))));
 				parent.redisplay();
 			}
 			case 1 -> parent.redisplay();
@@ -218,8 +224,8 @@ public class GuiAddEditTexture extends GuiScreen implements IMyGuiScreen {
 		textureIdField.drawTextBox();
 		if (textureIdError != null)
 			drawString(fontRenderer, I18n.format(textureIdError), width / 2 - 100 + 8, 80 + 4, 0xFFFF2222);
-		else if (!textureIdField.getText().contains(":"))
-			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.info.default_namespace_message", ModReference.DEFAULT_NAMESPACE), width / 2 - 100 + 8, 80 + 4, 0xFF22FF22);
+		else if (isAdd)
+			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.add_texture.info.real_model_id", getTextureId().toString()), width / 2 - 100 + 8, 80 + 4, 0xFF22FF22);
 
 		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.add_texture.label.file_path"), width / 2 - 100, 100 + 7, 0xffa0a0a0);
 		filePathField.drawTextBox();
@@ -236,20 +242,31 @@ public class GuiAddEditTexture extends GuiScreen implements IMyGuiScreen {
 	}
 
 
+	public ResourceLocation getTextureId() {
+		String textureIdStr = textureIdField.getText();
+		if (!textureIdStr.contains(":"))
+			textureIdStr = ModReference.DEFAULT_NAMESPACE + ":" + textureIdStr;
+		ResourceLocation textureId = new ResourceLocation(textureIdStr);
+		if (isItem) {
+			textureId = new ResourceLocation(textureId.getNamespace(), "items/" + textureId.getPath());
+		} else {
+			textureId = new ResourceLocation(textureId.getNamespace(), "blocks/" + textureId.getPath());
+		}
+		return textureId;
+	}
+
 	private void checkValid() {
 		if (isAdd) {
 			if (textureIdField.getText().isEmpty()) {
 				textureIdError = "gui.ingame_custom_stuff.error.path.empty";
 			} else {
-				String textureId = textureIdField.getText();
-				if (!textureId.contains(":"))
-					textureId = ModReference.DEFAULT_NAMESPACE + ":" + textureId;
-				textureIdError = DynamicResourceManager.getResourceIdErrorMessage(textureId, false);
+				ResourceLocation textureId = getTextureId();
+				textureIdError = DynamicResourceManager.getResourceIdErrorMessage(textureId.toString(), false);
 				if (isItem) {
-					if (ClientCache.INSTANCE.itemTextureIds.containsKey(new ResourceLocation(textureId)))
+					if (ClientCache.INSTANCE.itemTextureIds.containsKey(new ItemTextureId(textureId)))
 						textureIdError = "gui.ingame_custom_stuff.error.id_already_exists";
 				} else {
-					if (ClientCache.INSTANCE.blockTextureIds.containsKey(new ResourceLocation(textureId)))
+					if (ClientCache.INSTANCE.blockTextureIds.containsKey(new BlockTextureId(textureId)))
 						textureIdError = "gui.ingame_custom_stuff.error.id_already_exists";
 				}
 			}

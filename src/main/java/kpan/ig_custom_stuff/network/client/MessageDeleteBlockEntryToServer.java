@@ -9,10 +9,11 @@ import kpan.ig_custom_stuff.network.server.MessageDeleteBlockEntryToClient;
 import kpan.ig_custom_stuff.registry.DynamicServerRegistryManager;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
-import kpan.ig_custom_stuff.resource.IdConverter;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.BlockStateId;
+import kpan.ig_custom_stuff.resource.ids.ItemModelId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -22,20 +23,20 @@ public class MessageDeleteBlockEntryToServer extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageDeleteBlockEntryToServer() { }
 
-	private ResourceLocation blockId;
+	private BlockId blockId;
 
-	public MessageDeleteBlockEntryToServer(ResourceLocation blockId) {
+	public MessageDeleteBlockEntryToServer(BlockId blockId) {
 		this.blockId = blockId;
 	}
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
-		blockId = new ResourceLocation(readString(buf));
+		blockId = BlockId.formByteBuf(buf);
 	}
 
 	@Override
 	public void toBytes(ByteBuf buf) {
-		writeString(buf, blockId.toString());
+		blockId.writeTo(buf);
 	}
 
 	@Override
@@ -61,13 +62,14 @@ public class MessageDeleteBlockEntryToServer extends MessageBase {
 				return;//ブロック削除失敗は中止
 			}
 		}
+		BlockStateId blockStateId = blockId.toBlockStateId();
 		try {
-			Server.INSTANCE.removeBlockState(blockId);
+			Server.INSTANCE.removeBlockState(blockStateId);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to delete a block state file", e);
 				ModMain.LOGGER.error("Trying again...");
-				Server.INSTANCE.removeBlockState(blockId);
+				Server.INSTANCE.removeBlockState(blockStateId);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to delete a block state file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.delete.block_state", blockId);
@@ -87,13 +89,14 @@ public class MessageDeleteBlockEntryToServer extends MessageBase {
 				MessageUtil.sendToServerAndAllPlayers(server, component);
 			}
 		}
+		ItemModelId itemModelId = blockId.toItemId().toModelId();
 		try {
-			Server.INSTANCE.removeItemBlockModel(IdConverter.blockId2ItemModelId(blockId));
+			Server.INSTANCE.removeItemBlockModel(itemModelId);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to delete an item block model file", e);
 				ModMain.LOGGER.error("Trying again...");
-				Server.INSTANCE.removeItemBlockModel(IdConverter.blockId2ItemModelId(blockId));
+				Server.INSTANCE.removeItemBlockModel(itemModelId);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to delete an item block model file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.delete.item_block_model", blockId);

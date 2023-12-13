@@ -4,6 +4,8 @@ import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.gui.blockmodel.GuiBlockModelList;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId.BlockModelGroupType;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import kpan.ig_custom_stuff.util.handlers.ClientEventHandler;
 import net.minecraft.client.gui.Gui;
@@ -12,7 +14,6 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.StringUtils;
@@ -27,14 +28,16 @@ import java.util.stream.Collectors;
 @SideOnly(Side.CLIENT)
 public class GuiSelectBlockModel extends GuiScreen implements IMyGuiScreen {
 
-	private final Consumer<@Nullable ResourceLocation> modelIdConsumer;
+	private final BlockModelGroupType condition;
+	private final Consumer<@Nullable BlockModelGroupId> modelIdConsumer;
 	private GuiButton okBtn;
 	private GuiBlockModelList blockModelList;
 	private GuiTextField searchField;
 	private int infoLeft;
 	private int infoWidth;
 
-	public GuiSelectBlockModel(Consumer<@Nullable ResourceLocation> modelIdConsumer) {
+	public GuiSelectBlockModel(BlockModelGroupType condition, Consumer<@Nullable BlockModelGroupId> modelIdConsumer) {
+		this.condition = condition;
 		this.modelIdConsumer = modelIdConsumer;
 	}
 
@@ -58,7 +61,7 @@ public class GuiSelectBlockModel extends GuiScreen implements IMyGuiScreen {
 			modelIdConsumer.accept(null);
 		}
 		searchField.textboxKeyTyped(typedChar, keyCode);
-		blockModelList.applyVisiblePredicate(e -> StringUtils.containsIgnoreCase(e.modelId.toString(), searchField.getText()));
+		blockModelList.applyVisiblePredicate(e -> StringUtils.containsIgnoreCase(e.modelGroupId.toString(), searchField.getText()));
 	}
 
 	@Override
@@ -66,7 +69,7 @@ public class GuiSelectBlockModel extends GuiScreen implements IMyGuiScreen {
 		if (button.enabled) {
 			switch (button.id) {
 				case 0 -> {
-					modelIdConsumer.accept(blockModelList.getSelectedModelId());
+					modelIdConsumer.accept(blockModelList.getSelectedModelGroupId());
 				}
 				case 1 -> modelIdConsumer.accept(null);
 			}
@@ -83,9 +86,9 @@ public class GuiSelectBlockModel extends GuiScreen implements IMyGuiScreen {
 			int l = infoLeft;
 			Gui.drawRect(l, 0, width, height, 0xFF000000);
 			Gui.drawRect(l, 0, l + w, w, -1);
-			ResourceLocation modelId = blockModelList.getSelectedModelId();
+			BlockModelGroupId modelId = blockModelList.getSelectedModelGroupId();
 			if (modelId != null) {
-				IBakedModel model = SingleBlockModelLoader.getModel(modelId);
+				IBakedModel model = SingleBlockModelLoader.getModel(modelId.getRenderModelId());
 				if (model != null)
 					RenderUtil.renderModel(l, 0, w / 16f, ClientEventHandler.tick * 2, 30, model);
 			}
@@ -101,7 +104,7 @@ public class GuiSelectBlockModel extends GuiScreen implements IMyGuiScreen {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		blockModelList.mouseClicked(mouseX, mouseY, mouseButton);
 		searchField.mouseClicked(mouseX, mouseY, mouseButton);
-		okBtn.enabled = blockModelList.getSelectedModelId() != null;
+		okBtn.enabled = blockModelList.getSelectedModelGroupId() != null;
 	}
 
 	@Override
@@ -123,8 +126,11 @@ public class GuiSelectBlockModel extends GuiScreen implements IMyGuiScreen {
 		searchField.updateCursorCounter();
 	}
 
-	private Collection<ResourceLocation> getModels() {
-		return ClientCache.INSTANCE.blockModelIds.keySet().stream().sorted().collect(Collectors.toList());
+	private Collection<BlockModelGroupId> getModels() {
+		return ClientCache.INSTANCE.blockModelIds.entrySet().stream()
+				.filter(e -> e.getValue().modelType.toBlockModelGroupType() == condition)
+				.map(entry -> new BlockModelGroupId(entry.getValue().modelType.toBlockModelGroupType(), entry.getKey()))
+				.collect(Collectors.toSet());
 	}
 
 }

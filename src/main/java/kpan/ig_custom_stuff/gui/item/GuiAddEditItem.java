@@ -11,6 +11,7 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageRegisterItemEntryToServer;
 import kpan.ig_custom_stuff.network.client.MessageReplaceItemEntryToServer;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
@@ -92,7 +93,7 @@ public class GuiAddEditItem extends GuiScreen implements IMyGuiScreen {
 				String itemId = itemIdField.getText();
 				if (!itemId.contains(":"))
 					itemId = ModReference.DEFAULT_NAMESPACE + ":" + itemId;
-				ItemEntry itemEntry = new ItemEntry(new ResourceLocation(itemId), itemPropertyEntry);
+				ItemEntry itemEntry = new ItemEntry(new ItemId(new ResourceLocation(itemId)), itemPropertyEntry);
 				ItemLangEntry itemLangEntry = new ItemLangEntry(itemNameField.getText());
 				if (isAdd)
 					MyPacketHandler.sendToServer(new MessageRegisterItemEntryToServer(itemEntry, itemModelEntry, itemLangEntry));

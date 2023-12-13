@@ -2,10 +2,10 @@ package kpan.ig_custom_stuff.gui.blockmodel;
 
 import kpan.ig_custom_stuff.gui.MyGuiSlot;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -16,9 +16,9 @@ import java.util.function.Supplier;
 
 @SideOnly(Side.CLIENT)
 public class GuiBlockModelList extends MyGuiSlot {
-	private final Supplier<Collection<ResourceLocation>> entrySupplier;
+	private final Supplier<Collection<BlockModelGroupId>> entrySupplier;
 
-	public GuiBlockModelList(Minecraft mc, int width, int height, int top, int bottom, Supplier<Collection<ResourceLocation>> entrySupplier) {
+	public GuiBlockModelList(Minecraft mc, int width, int height, int top, int bottom, Supplier<Collection<BlockModelGroupId>> entrySupplier) {
 		super(mc, width, height, top, bottom, 18);
 		this.entrySupplier = entrySupplier;
 		refreshList();
@@ -26,7 +26,7 @@ public class GuiBlockModelList extends MyGuiSlot {
 
 	public void refreshList() {
 		listEntries.clear();
-		for (ResourceLocation id : entrySupplier.get()) {
+		for (BlockModelGroupId id : entrySupplier.get()) {
 			listEntries.add(new Entry(id));
 		}
 	}
@@ -59,21 +59,21 @@ public class GuiBlockModelList extends MyGuiSlot {
 	}
 
 	@Nullable
-	public ResourceLocation getSelectedModelId() {
-		return selectedIndex >= 0 ? getListEntry(selectedIndex).modelId : null;
+	public BlockModelGroupId getSelectedModelGroupId() {
+		return selectedIndex >= 0 ? getListEntry(selectedIndex).modelGroupId : null;
 	}
 
 	public class Entry implements IGuiListEntry {
-		public final ResourceLocation modelId;
+		public final BlockModelGroupId modelGroupId;
 		public boolean isVisible = true;
-		public Entry(ResourceLocation modelId) {
-			this.modelId = modelId;
+		public Entry(BlockModelGroupId modelGroupId) {
+			this.modelGroupId = modelGroupId;
 		}
 
 		@Override
 		public void drawEntry(int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY, boolean isSelected, float partialTicks) {
-			mc.fontRenderer.drawString(modelId.toString(), x + 16 + 3, y + 3, 0xFFFFFF);
-			RenderUtil.renderModel(x, y - 1, 1, SingleBlockModelLoader.getModel(modelId));
+			mc.fontRenderer.drawString(modelGroupId.toResourceLocation().toString(), x + 16 + 3, y + 3, 0xFFFFFF);
+			RenderUtil.renderModel(x, y - 1, 1, SingleBlockModelLoader.getModel(modelGroupId.getRenderModelId()));
 		}
 
 		@Override

@@ -2,13 +2,13 @@ package kpan.ig_custom_stuff.gui.block;
 
 import kpan.ig_custom_stuff.gui.MyGuiSlot;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -27,7 +27,7 @@ public class GuiBlockList extends MyGuiSlot {
 
 	public void refreshList() {
 		listEntries.clear();
-		for (ResourceLocation id : MCRegistryUtil.getBlockIds()) {
+		for (BlockId id : MCRegistryUtil.getBlockIds()) {
 			listEntries.add(new Entry(id));
 		}
 	}
@@ -51,21 +51,21 @@ public class GuiBlockList extends MyGuiSlot {
 	}
 
 	@Nullable
-	public ResourceLocation getSelectedBlockId() {
+	public BlockId getSelectedBlockId() {
 		return selectedIndex >= 0 ? getListEntry(selectedIndex).blockId : null;
 	}
 
 	public class Entry implements IGuiListEntry {
-		public final ResourceLocation blockId;
+		public final BlockId blockId;
 		public boolean isVisible = true;
-		public Entry(ResourceLocation blockId) {
+		public Entry(BlockId blockId) {
 			this.blockId = blockId;
 		}
 
 		@Override
 		public void drawEntry(int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY, boolean isSelected, float partialTicks) {
 			mc.fontRenderer.drawString(blockId.toString(), x + 16 + 3, y + 3, 0xFFFFFF);
-			Block block = Block.REGISTRY.getObject(blockId);
+			Block block = Block.REGISTRY.getObject(blockId.toResourceLocation());
 			if (block != Blocks.AIR) {
 				RenderHelper.enableGUIStandardItemLighting();
 				Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(new ItemStack(block, 1), x, y - 1);

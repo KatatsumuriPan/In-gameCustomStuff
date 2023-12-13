@@ -13,6 +13,7 @@ import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.ModTagsGenerated;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.EnumTypeAdapterFactory;
@@ -76,7 +77,7 @@ public class ItemModelEntry {
 		}
 	}
 
-	public void register(ResourceLocation itemId, boolean isRemote) throws IOException {
+	public void register(ItemId itemId, boolean isRemote) throws IOException {
 		if (isRemote) {
 			ClientCache.INSTANCE.addModel(itemId, this);
 		} else {
@@ -84,7 +85,7 @@ public class ItemModelEntry {
 		}
 	}
 
-	public void update(ResourceLocation itemId, boolean isRemote) throws IOException {
+	public void update(ItemId itemId, boolean isRemote) throws IOException {
 		register(itemId, isRemote);
 	}
 

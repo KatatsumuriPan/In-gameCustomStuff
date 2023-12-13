@@ -7,11 +7,10 @@ import kpan.ig_custom_stuff.item.ItemLangEntry;
 import kpan.ig_custom_stuff.item.model.ItemModelEntry;
 import kpan.ig_custom_stuff.network.MessageBase;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
-import kpan.ig_custom_stuff.resource.IdConverter;
 import kpan.ig_custom_stuff.resource.RemovedResourcesResourcePack;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
@@ -58,9 +57,9 @@ public class MessageRegisterItemEntryToClient extends MessageBase {
 	}
 
 	private static class Client {
-		public static void doAction(ResourceLocation itemId) {
+		public static void doAction(ItemId itemId) {
 			RemovedResourcesResourcePack.INSTANCE.removeRemovedItem(itemId);
-			DynamicResourceLoader.loadItemModels(Collections.singletonList(IdConverter.itemId2ItemModelName(itemId)));
+			DynamicResourceLoader.loadItemModels(Collections.singletonList(itemId));
 			DynamicResourceLoader.reloadItemModelMesh(itemId);
 			GuiScreen screen = Minecraft.getMinecraft().currentScreen;
 			if (screen instanceof GuiItemMenu guiItemMenu)

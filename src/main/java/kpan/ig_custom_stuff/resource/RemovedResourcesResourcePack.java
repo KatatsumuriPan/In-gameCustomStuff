@@ -1,11 +1,12 @@
 package kpan.ig_custom_stuff.resource;
 
 import kpan.ig_custom_stuff.ModTagsGenerated;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.AbstractResourcePack;
 import net.minecraft.client.resources.FallbackResourceManager;
 import net.minecraft.client.resources.SimpleReloadableResourceManager;
-import net.minecraft.util.ResourceLocation;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -29,24 +30,24 @@ public class RemovedResourcesResourcePack extends AbstractResourcePack {
 		super(new File("DUMMY"));
 	}
 
-	public void addRemovedBlock(ResourceLocation blockId) {
-		removedBlockStates.add("assets/" + blockId.getNamespace() + "/blockstates/" + blockId.getPath() + ".json");
-		removedItemBlockModel.add("assets/" + blockId.getNamespace() + "/models/item/" + blockId.getPath() + ".json");
-		addNamespace(blockId.getNamespace());
+	public void addRemovedBlock(BlockId blockId) {
+		removedBlockStates.add("assets/" + blockId.namespace + "/blockstates/" + blockId.name + ".json");
+		removedItemBlockModel.add("assets/" + blockId.namespace + "/models/item/" + blockId.name + ".json");
+		addNamespace(blockId.namespace);
 	}
 
-	public void removeRemovedBlock(ResourceLocation blockId) {
-		removedBlockStates.remove("assets/" + blockId.getNamespace() + "/blockstates/" + blockId.getPath() + ".json");
-		removedItemBlockModel.remove("assets/" + blockId.getNamespace() + "/models/item/" + blockId.getPath() + ".json");
+	public void removeRemovedBlock(BlockId blockId) {
+		removedBlockStates.remove("assets/" + blockId.namespace + "/blockstates/" + blockId.name + ".json");
+		removedItemBlockModel.remove("assets/" + blockId.namespace + "/models/item/" + blockId.name + ".json");
 	}
 
-	public void addRemovedItem(ResourceLocation itemId) {
-		removedItemModel.add("assets/" + itemId.getNamespace() + "/models/item/" + itemId.getPath() + ".json");
-		addNamespace(itemId.getNamespace());
+	public void addRemovedItem(ItemId itemId) {
+		removedItemModel.add("assets/" + itemId.namespace + "/models/item/" + itemId.name + ".json");
+		addNamespace(itemId.namespace);
 	}
 
-	public void removeRemovedItem(ResourceLocation itemId) {
-		removedItemModel.remove("assets/" + itemId.getNamespace() + "/models/item/" + itemId.getPath() + ".json");
+	public void removeRemovedItem(ItemId itemId) {
+		removedItemModel.remove("assets/" + itemId.namespace + "/models/item/" + itemId.name + ".json");
 	}
 
 	public void clearAll() {

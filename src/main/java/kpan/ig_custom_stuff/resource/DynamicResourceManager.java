@@ -7,10 +7,17 @@ import kpan.ig_custom_stuff.ModTagsGenerated;
 import kpan.ig_custom_stuff.block.BlockModelEntry;
 import kpan.ig_custom_stuff.block.BlockStateEntry;
 import kpan.ig_custom_stuff.item.model.ItemModelEntry;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
+import kpan.ig_custom_stuff.resource.ids.BlockStateId;
+import kpan.ig_custom_stuff.resource.ids.BlockTextureId;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
+import kpan.ig_custom_stuff.resource.ids.ItemModelId;
+import kpan.ig_custom_stuff.resource.ids.ItemTextureId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,11 +45,11 @@ public class DynamicResourceManager {
 	public final Path assetsDir;
 	public final Consumer<String> namespaceLoader;
 	public final Map<String, Map<String, Map<String, String>>> lang = new TreeMap<>();//namespace->langCode->translationKey->name
-	public final Map<ResourceLocation, BlockStateEntry> blockStates = new TreeMap<>();//blockStateId->
-	public final Map<ResourceLocation, ItemModelEntry> itemModelIds = new TreeMap<>();//itemModelId->
-	public final Map<ResourceLocation, BlockModelEntry> blockModelIds = new TreeMap<>();//blockModelId->
-	public final Map<ResourceLocation, @Nullable TextureAnimationEntry> blockTextureIds = new TreeMap<>();
-	public final Map<ResourceLocation, @Nullable TextureAnimationEntry> itemTextureIds = new TreeMap<>();
+	public final Map<BlockStateId, BlockStateEntry> blockStates = new TreeMap<>();
+	public final Map<ItemModelId, ItemModelEntry> itemModelIds = new TreeMap<>();
+	public final Map<BlockModelId, BlockModelEntry> blockModelIds = new TreeMap<>();
+	public final Map<BlockTextureId, @Nullable TextureAnimationEntry> blockTextureIds = new TreeMap<>();
+	public final Map<ItemTextureId, @Nullable TextureAnimationEntry> itemTextureIds = new TreeMap<>();
 
 	public DynamicResourceManager(Path resourcepackDir, Consumer<String> namespaceLoader) {
 		assetsDir = Paths.get(resourcepackDir.toString(), "assets");
@@ -92,191 +99,197 @@ public class DynamicResourceManager {
 		Files.write(filePath, lines, StandardCharsets.UTF_8);
 		namespaceLoader.accept(namespace);
 	}
-	public String getItemNameLang(String langKey, ResourceLocation itemId) {
+	public String getItemNameLang(String langKey, ItemId itemId) {
 		String translationKey = toTranslationKeyItem(itemId);
-		String lang = getLang(itemId.getNamespace(), langKey, translationKey);
+		String lang = getLang(itemId.namespace, langKey, translationKey);
 		return lang != null ? lang : translationKey;
 	}
-	public boolean hasItemNameLang(String langKey, ResourceLocation itemId) {
+	public boolean hasItemNameLang(String langKey, ItemId itemId) {
 		String translationKey = toTranslationKeyItem(itemId);
-		return getLang(itemId.getNamespace(), langKey, translationKey) != null;
+		return getLang(itemId.namespace, langKey, translationKey) != null;
 	}
-	public void removeItemNameLang(String langKey, ResourceLocation itemId) throws IOException {
-		removeLang(itemId.getNamespace(), langKey, toTranslationKeyItem(itemId));
+	public void removeItemNameLang(String langKey, ItemId itemId) throws IOException {
+		removeLang(itemId.namespace, langKey, toTranslationKeyItem(itemId));
 	}
-	public String getBlockNameLang(String langKey, ResourceLocation blockId) {
-		return getLang(blockId.getNamespace(), langKey, toTranslationKeyBlock(blockId));
+	public String getBlockNameLang(String langKey, BlockId blockId) {
+		return getLang(blockId.namespace, langKey, toTranslationKeyBlock(blockId));
 	}
-	public boolean hasBlockNameLang(String langKey, ResourceLocation blockId) {
+	public boolean hasBlockNameLang(String langKey, BlockId blockId) {
 		String translationKey = toTranslationKeyBlock(blockId);
-		return getLang(blockId.getNamespace(), langKey, translationKey) != null;
+		return getLang(blockId.namespace, langKey, translationKey) != null;
 	}
-	public void removeBlockNameLang(String langKey, ResourceLocation blockId) throws IOException {
-		removeLang(blockId.getNamespace(), langKey, toTranslationKeyBlock(blockId));
+	public void removeBlockNameLang(String langKey, BlockId blockId) throws IOException {
+		removeLang(blockId.namespace, langKey, toTranslationKeyBlock(blockId));
 	}
 
 	//model
 	//itemModel
-	public boolean isItemModelAdded(ResourceLocation itemModelId) {
+	public boolean isItemModelAdded(ItemModelId itemModelId) {
 		return itemModelIds.containsKey(itemModelId);
 	}
-	public void addModel(ResourceLocation itemId, ItemModelEntry itemModelEntry) throws IOException {
-		ResourceLocation modelId = IdConverter.itemId2ItemModelId(itemId);
-		Path filePath = assetsDir.resolve(modelId.getNamespace()).resolve("models").resolve(modelId.getPath());
+	public void addModel(ItemId itemId, ItemModelEntry itemModelEntry) throws IOException {
+		ItemModelId modelId = itemId.toModelId();
+		Path filePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
 		Files.createDirectories(filePath.getParent());
 		Files.write(Paths.get(filePath + ".json"), itemModelEntry.toJson().getBytes(StandardCharsets.UTF_8));
-		namespaceLoader.accept(modelId.getNamespace());
+		namespaceLoader.accept(modelId.namespace);
 		itemModelIds.put(modelId, itemModelEntry);
 	}
 	@Nullable
-	public ItemModelEntry getItemModel(ResourceLocation itemId) {
-		return itemModelIds.get(IdConverter.itemId2ItemModelId(itemId));
+	public ItemModelEntry getItemModel(ItemId itemId) {
+		return itemModelIds.get(itemId.toModelId());
 	}
-	public void removeItemModel(ResourceLocation itemId) throws IOException {
-		ResourceLocation modelId = IdConverter.itemId2ItemModelId(itemId);
-		Path filePath = assetsDir.resolve(modelId.getNamespace()).resolve("models").resolve(modelId.getPath());
+	public void removeItemModel(ItemId itemId) throws IOException {
+		ItemModelId modelId = itemId.toModelId();
+		Path filePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
 		Files.delete(Paths.get(filePath + ".json"));
-		namespaceLoader.accept(modelId.getNamespace());
+		namespaceLoader.accept(modelId.namespace);
 		itemModelIds.remove(modelId);
 	}
 	//blockModel
-	public boolean isBlockModelAdded(ResourceLocation blockModelId) {
+	public boolean isBlockModelAdded(BlockModelId blockModelId) {
 		return blockModelIds.containsKey(blockModelId);
 	}
-	public boolean addBlockModel(ResourceLocation modelId, BlockModelEntry blockModelEntry) throws IOException {
+	public boolean addBlockModel(BlockModelId modelId, BlockModelEntry blockModelEntry) throws IOException {
 		if (blockModelIds.containsKey(modelId))
 			return false;
-		Path blockModelFilePath = assetsDir.resolve(modelId.getNamespace()).resolve("models").resolve(modelId.getPath());
+		Path blockModelFilePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
 		Files.createDirectories(blockModelFilePath.getParent());
-		Files.write(Paths.get(blockModelFilePath + ".json"), blockModelEntry.toJson().getBytes(StandardCharsets.UTF_8));
-		namespaceLoader.accept(modelId.getNamespace());
+		blockModelEntry.saveToFiles(blockModelFilePath);
+		namespaceLoader.accept(modelId.namespace);
 		blockModelIds.put(modelId, blockModelEntry);
 		return true;
 	}
-	public boolean replaceBlockModel(ResourceLocation modelId, BlockModelEntry blockModelEntry) throws IOException {
+	public boolean replaceBlockModel(BlockModelId modelId, BlockModelEntry blockModelEntry) throws IOException {
 		if (!blockModelIds.containsKey(modelId))
 			return false;
-		Path blockModelFilePath = assetsDir.resolve(modelId.getNamespace()).resolve("models").resolve(modelId.getPath());
+		Path blockModelFilePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
 		Files.createDirectories(blockModelFilePath.getParent());
-		Files.write(Paths.get(blockModelFilePath + ".json"), blockModelEntry.toJson().getBytes(StandardCharsets.UTF_8));
-		namespaceLoader.accept(modelId.getNamespace());
+		blockModelIds.get(modelId).deleteFiles(blockModelFilePath);
+		blockModelEntry.saveToFiles(blockModelFilePath);
+		namespaceLoader.accept(modelId.namespace);
 		blockModelIds.put(modelId, blockModelEntry);
 		return true;
 	}
 	@Nullable
-	public BlockModelEntry getBlockModel(ResourceLocation modelId) {
+	public BlockModelEntry getBlockModel(BlockModelId modelId) {
 		return blockModelIds.get(modelId);
 	}
-	public boolean removeBlockModel(ResourceLocation modelId) throws IOException {
+	public boolean removeBlockModel(BlockModelId modelId) throws IOException {
 		if (!blockModelIds.containsKey(modelId))
 			return false;
-		Path blockModelFilePath = assetsDir.resolve(modelId.getNamespace()).resolve("models").resolve(modelId.getPath());
-		Files.delete(Paths.get(blockModelFilePath + ".json"));
-		namespaceLoader.accept(modelId.getNamespace());
-		blockModelIds.remove(modelId);
+		Path blockModelFilePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
+		blockModelIds.remove(modelId).deleteFiles(blockModelFilePath);
+		namespaceLoader.accept(modelId.namespace);
 		return true;
 	}
 
-	public void setItemBlockModel(ResourceLocation itemModelId, ResourceLocation parentBlockModelId) throws IOException {
-		String json = "{\n" +
-				"    \"ics_itemblock_model_type\": \"block\",\n" +
-				"    \"parent\": \"" + parentBlockModelId + "\"\n" +
-				"}\n";
-		Path filePath = assetsDir.resolve(itemModelId.getNamespace()).resolve("models").resolve(itemModelId.getPath());
+	public void setItemBlockModel(ItemModelId itemModelId, BlockStateEntry blockStateEntry) throws IOException {
+		Path filePath = assetsDir.resolve(itemModelId.namespace).resolve("models").resolve(itemModelId.toResourceLocation().getPath());
 		Files.createDirectories(filePath.getParent());
-		Files.write(Paths.get(filePath + ".json"), json.getBytes(StandardCharsets.UTF_8));
-		namespaceLoader.accept(itemModelId.getNamespace());
+		Files.write(Paths.get(filePath + ".json"), blockStateEntry.getItemModelJson(this).getBytes(StandardCharsets.UTF_8));
+		namespaceLoader.accept(itemModelId.namespace);
 	}
-	public void removeItemBlockModel(ResourceLocation itemModelId) throws IOException {
-		Path filePath = assetsDir.resolve(itemModelId.getNamespace()).resolve("models").resolve(itemModelId.getPath());
+	public void removeItemBlockModel(ItemModelId itemModelId) throws IOException {
+		Path filePath = assetsDir.resolve(itemModelId.namespace).resolve("models").resolve(itemModelId.toResourceLocation().getPath());
 		Files.delete(Paths.get(filePath + ".json"));
-		namespaceLoader.accept(itemModelId.getNamespace());
+		namespaceLoader.accept(itemModelId.namespace);
 	}
 
 
 	//blockstate
-	public void addBlockstate(ResourceLocation blockId, BlockStateEntry blockStateEntry) throws IOException {
-		Path filePath = assetsDir.resolve(blockId.getNamespace()).resolve("blockstates").resolve(blockId.getPath());
+	public void addBlockstate(BlockId blockId, BlockStateEntry blockStateEntry) throws IOException {
+		Path filePath = assetsDir.resolve(blockId.namespace).resolve("blockstates").resolve(blockId.name);
 		Files.createDirectories(filePath.getParent());
 		Files.write(Paths.get(filePath + ".json"), blockStateEntry.toJson().getBytes(StandardCharsets.UTF_8));
-		namespaceLoader.accept(blockId.getNamespace());
-		blockStates.put(blockId, blockStateEntry);
+		namespaceLoader.accept(blockId.namespace);
+		blockStates.put(blockId.toBlockStateId(), blockStateEntry);
 	}
-	public void replaceBlockstate(ResourceLocation blockId, BlockStateEntry blockStateEntry) throws IOException {
+	public void replaceBlockstate(BlockId blockId, BlockStateEntry blockStateEntry) throws IOException {
 		addBlockstate(blockId, blockStateEntry);
 	}
 
 	@Nullable
-	public BlockStateEntry getBlockState(ResourceLocation blockId) {
-		return blockStates.get(blockId);
+	public BlockStateEntry getBlockState(BlockStateId blockStateId) {
+		return blockStates.get(blockStateId);
 	}
-	public void removeBlockState(ResourceLocation blockId) throws IOException {
-		Path filePath = assetsDir.resolve(blockId.getNamespace()).resolve("blockstates").resolve(blockId.getPath());
+	public void removeBlockState(BlockStateId blockStateId) throws IOException {
+		Path filePath = assetsDir.resolve(blockStateId.namespace).resolve("blockstates").resolve(blockStateId.name);
 		Files.delete(Paths.get(filePath + ".json"));
-		namespaceLoader.accept(blockId.getNamespace());
-		blockStates.remove(blockId);
+		namespaceLoader.accept(blockStateId.namespace);
+		blockStates.remove(blockStateId);
 	}
 
 	//texture
-	public boolean addTexture(ResourceLocation textureId, byte[] data, @Nullable TextureAnimationEntry animationEntry) throws IOException {
-		Map<ResourceLocation, TextureAnimationEntry> map;
-		if (IdConverter.isItemTextureId(textureId)) {
-			if (!itemTextureIds.containsKey(textureId)) {
-				map = itemTextureIds;
-			} else {
-				return false;
-			}
-		} else if (IdConverter.isBlockTextureId(textureId)) {
-			if (!blockTextureIds.containsKey(textureId)) {
-				map = blockTextureIds;
-			} else {
-				return false;
-			}
-		} else {
+	public boolean addTexture(ItemTextureId textureId, byte[] data, @Nullable TextureAnimationEntry animationEntry) throws IOException {
+		if (itemTextureIds.containsKey(textureId))
 			return false;
-		}
-		Path filePath = assetsDir.resolve(textureId.getNamespace()).resolve("textures").resolve(textureId.getPath());
+		Path filePath = assetsDir.resolve(textureId.namespace).resolve("textures").resolve(textureId.toResourceLocation().getPath());
 		Files.createDirectories(filePath.getParent());
 		Files.write(Paths.get(filePath + ".png"), data);
 		if (animationEntry != null)
 			FileUtils.write(Paths.get(filePath + ".png.mcmeta").toFile(), animationEntry.toJson(), StandardCharsets.UTF_8);
-		namespaceLoader.accept(textureId.getNamespace());
-		map.put(textureId, animationEntry);
+		namespaceLoader.accept(textureId.namespace);
+		itemTextureIds.put(textureId, animationEntry);
 		return true;
 	}
-	public boolean replaceTexture(ResourceLocation textureId, byte[] data, @Nullable TextureAnimationEntry animationEntry) throws IOException {
-		Map<ResourceLocation, TextureAnimationEntry> map;
-		if (itemTextureIds.containsKey(textureId)) {
-			map = itemTextureIds;
-		} else if (blockTextureIds.containsKey(textureId)) {
-			map = blockTextureIds;
-		} else {
+	public boolean addTexture(BlockTextureId textureId, byte[] data, @Nullable TextureAnimationEntry animationEntry) throws IOException {
+		if (blockTextureIds.containsKey(textureId))
 			return false;
-		}
-		Path filePath = assetsDir.resolve(textureId.getNamespace()).resolve("textures").resolve(textureId.getPath());
+		Path filePath = assetsDir.resolve(textureId.namespace).resolve("textures").resolve(textureId.toResourceLocation().getPath());
+		Files.createDirectories(filePath.getParent());
+		Files.write(Paths.get(filePath + ".png"), data);
+		if (animationEntry != null)
+			FileUtils.write(Paths.get(filePath + ".png.mcmeta").toFile(), animationEntry.toJson(), StandardCharsets.UTF_8);
+		namespaceLoader.accept(textureId.namespace);
+		blockTextureIds.put(textureId, animationEntry);
+		return true;
+	}
+
+	public boolean replaceTexture(ItemTextureId textureId, byte[] data, @Nullable TextureAnimationEntry animationEntry) throws IOException {
+		if (!itemTextureIds.containsKey(textureId))
+			return false;
+		Path filePath = assetsDir.resolve(textureId.namespace).resolve("textures").resolve(textureId.toResourceLocation().getPath());
 		Files.createDirectories(filePath.getParent());
 		Files.write(Paths.get(filePath + ".png"), data);
 		if (animationEntry != null)
 			FileUtils.write(Paths.get(filePath + ".png.mcmeta").toFile(), animationEntry.toJson(), StandardCharsets.UTF_8);
 		else if (Files.exists(Paths.get(filePath + ".png.mcmeta")))
 			Files.delete(Paths.get(filePath + ".png.mcmeta"));
-		map.put(textureId, animationEntry);
+		itemTextureIds.put(textureId, animationEntry);
 		return true;
 	}
-	public boolean removeTexture(ResourceLocation textureId) throws IOException {
-		Map<ResourceLocation, TextureAnimationEntry> map;
-		if (itemTextureIds.containsKey(textureId)) {
-			map = itemTextureIds;
-		} else if (blockTextureIds.containsKey(textureId)) {
-			map = blockTextureIds;
-		} else {
+	public boolean replaceTexture(BlockTextureId textureId, byte[] data, @Nullable TextureAnimationEntry animationEntry) throws IOException {
+		if (!blockTextureIds.containsKey(textureId))
 			return false;
-		}
-		Path filePath = assetsDir.resolve(textureId.getNamespace()).resolve("textures").resolve(textureId.getPath());
+		Path filePath = assetsDir.resolve(textureId.namespace).resolve("textures").resolve(textureId.toResourceLocation().getPath());
+		Files.createDirectories(filePath.getParent());
+		Files.write(Paths.get(filePath + ".png"), data);
+		if (animationEntry != null)
+			FileUtils.write(Paths.get(filePath + ".png.mcmeta").toFile(), animationEntry.toJson(), StandardCharsets.UTF_8);
+		else if (Files.exists(Paths.get(filePath + ".png.mcmeta")))
+			Files.delete(Paths.get(filePath + ".png.mcmeta"));
+		blockTextureIds.put(textureId, animationEntry);
+		return true;
+	}
+	public boolean removeTexture(ItemTextureId textureId) throws IOException {
+		if (!itemTextureIds.containsKey(textureId))
+			return false;
+		Path filePath = assetsDir.resolve(textureId.namespace).resolve("textures").resolve(textureId.toResourceLocation().getPath());
 		Files.delete(Paths.get(filePath + ".png"));
 		if (Files.exists(Paths.get(filePath + ".png.mcmeta")))
 			Files.delete(Paths.get(filePath + ".png.mcmeta"));
-		map.remove(textureId);
+		itemTextureIds.remove(textureId);
+		return true;
+	}
+	public boolean removeTexture(BlockTextureId textureId) throws IOException {
+		if (!blockTextureIds.containsKey(textureId))
+			return false;
+		Path filePath = assetsDir.resolve(textureId.namespace).resolve("textures").resolve(textureId.toResourceLocation().getPath());
+		Files.delete(Paths.get(filePath + ".png"));
+		if (Files.exists(Paths.get(filePath + ".png.mcmeta")))
+			Files.delete(Paths.get(filePath + ".png.mcmeta"));
+		blockTextureIds.remove(textureId);
 		return true;
 	}
 
@@ -303,13 +316,34 @@ public class DynamicResourceManager {
 	}
 
 	@Nullable
-	public static String getBlockModelIdErrorMessage(ResourceLocation modelId, boolean allowAllNamespace) {
+	public static String getBlockModelIdErrorMessage(BlockModelId modelId, boolean allowAllNamespace) {
 		if (!allowAllNamespace && modelId.toString().length() > ID_MAX_LENGTH)
 			return I18n.format("gui.ingame_custom_stuff.error.id.too_long", ID_MAX_LENGTH);
-		String namespace = modelId.getNamespace();
+		String namespace = modelId.namespace;
 		if (namespace.isEmpty())
 			return "Namespace is empty";
-		String path = modelId.getPath();
+		String path = modelId.path;
+		if (path.isEmpty())
+			return "Path is empty";
+		if (!allowAllNamespace) {
+			if (namespace.equals("minecraft"))
+				return "Namespace \"minecraft\" is not allowed";
+			if (namespace.equals("forge"))
+				return "Namespace \"forge\" is not allowed";
+		}
+		if (!namespace.matches("[a-z0-9_]+") || !path.matches("[a-z0-9_]+(/[a-z0-9_]+)*"))
+			return "Only lower half-width alphanumeric and \"_\" are allowed";
+		return null;
+	}
+
+	@Nullable
+	public static String getBlockModelIdErrorMessage(BlockModelGroupId modelGroupId, boolean allowAllNamespace) {
+		if (!allowAllNamespace && modelGroupId.toString().length() > ID_MAX_LENGTH)
+			return I18n.format("gui.ingame_custom_stuff.error.id.too_long", ID_MAX_LENGTH);
+		String namespace = modelGroupId.namespace;
+		if (namespace.isEmpty())
+			return "Namespace is empty";
+		String path = modelGroupId.path;
 		if (path.isEmpty())
 			return "Path is empty";
 		if (!allowAllNamespace) {
@@ -324,13 +358,13 @@ public class DynamicResourceManager {
 	}
 
 	@NotNull
-	public static String toTranslationKeyItem(ResourceLocation itemId) {
-		return "item." + itemId.getNamespace() + "." + itemId.getPath() + ".name";
+	public static String toTranslationKeyItem(ItemId itemId) {
+		return "item." + itemId.namespace + "." + itemId.name + ".name";
 	}
 
 	@NotNull
-	public static String toTranslationKeyBlock(ResourceLocation blockId) {
-		return "tile." + blockId.getNamespace() + "." + blockId.getPath() + ".name";
+	public static String toTranslationKeyBlock(BlockId blockId) {
+		return "tile." + blockId.namespace + "." + blockId.name + ".name";
 	}
 
 	@Nullable
@@ -419,7 +453,7 @@ public class DynamicResourceManager {
 								try {
 									BlockStateEntry blockStateEntry = BlockStateEntry.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8));
 									if (blockStateEntry != null) {
-										blockStates.put(new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.'))), blockStateEntry);
+										blockStates.put(new BlockStateId(namespace, path.substring(0, path.lastIndexOf('.'))), blockStateEntry);
 									}
 								} catch (IOException e) {
 									throw new RuntimeException(e);
@@ -447,11 +481,11 @@ public class DynamicResourceManager {
 					if (Files.exists(dirItem)) {
 						try (Stream<Path> stream = Files.find(dirItem, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
 							stream.forEach(p -> {
-								String path = dir.relativize(p).toString().replace('\\', '/');
+								String path = dirItem.relativize(p).toString().replace('\\', '/');
 								try {
 									ItemModelEntry itemModelEntry = ItemModelEntry.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8));
 									if (itemModelEntry != null)
-										itemModelIds.put(new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.'))), itemModelEntry);
+										itemModelIds.put(new ItemModelId(namespace, path.substring(0, path.lastIndexOf('.'))), itemModelEntry);
 								} catch (IOException e) {
 									throw new RuntimeException(e);
 								} catch (JsonSyntaxException e) {
@@ -463,20 +497,45 @@ public class DynamicResourceManager {
 						}
 					}
 					Path dirBlock = dir.resolve("block");
-					if (Files.exists(dirBlock)) {
-						try (Stream<Path> stream = Files.find(dirBlock, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
-							stream.forEach(p -> {
-								String path = dir.relativize(p).toString().replace('\\', '/');
-								try {
-									blockModelIds.put(new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.'))), BlockModelEntry.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8)));
-								} catch (IOException e) {
-									throw new RuntimeException(e);
-								} catch (JsonSyntaxException e) {
-									throw new RuntimeException("Invalid json file:" + p, e);
-								}
-							});
-						} catch (IOException e) {
-							throw new RuntimeException(e);
+					//normal
+					{
+						Path dirNormal = dirBlock.resolve("normal");
+						if (Files.exists(dirNormal)) {
+							try (Stream<Path> stream = Files.find(dirNormal, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
+								stream.forEach(p -> {
+									String path = dirBlock.relativize(p).toString().replace('\\', '/');
+									try {
+										blockModelIds.put(new BlockModelId(namespace, path.substring(0, path.lastIndexOf('.'))), BlockModelEntry.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8)));
+									} catch (IOException e) {
+										throw new RuntimeException(e);
+									} catch (JsonSyntaxException e) {
+										throw new RuntimeException("Invalid json file:" + p, e);
+									}
+								});
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+					//slab
+					{
+						Path dirSlab = dirBlock.resolve("slab");
+						if (Files.exists(dirSlab)) {
+							try (Stream<Path> stream = Files.find(dirSlab, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
+								stream.forEach(p -> {
+									String path = dirBlock.relativize(p).toString().replace('\\', '/');
+									path = path.substring(0, path.lastIndexOf('.'));
+									try {
+										blockModelIds.put(new BlockModelId(namespace, path), BlockModelEntry.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8)));
+									} catch (IOException e) {
+										throw new RuntimeException(e);
+									} catch (JsonSyntaxException e) {
+										throw new RuntimeException("Invalid json file:" + p, e);
+									}
+								});
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
 						}
 					}
 					namespaceLoader.accept(namespace);
@@ -495,10 +554,10 @@ public class DynamicResourceManager {
 					if (Files.exists(dirItems)) {
 						try (Stream<Path> stream = Files.find(dirItems, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
 							stream.forEach(p -> {
-								String path = dir.relativize(p).toString().replace('\\', '/');
+								String path = dirItems.relativize(p).toString().replace('\\', '/');
 								if (path.endsWith(".mcmeta"))
 									return;
-								ResourceLocation textureId = new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.')));
+								ItemTextureId textureId = new ItemTextureId(namespace, path.substring(0, path.lastIndexOf('.')));
 								@Nullable TextureAnimationEntry animationEntry = null;
 								Path animation_path = Paths.get(p + ".mcmeta");
 								if (Files.exists(animation_path)) {
@@ -519,10 +578,10 @@ public class DynamicResourceManager {
 					if (Files.exists(dirBlocks)) {
 						try (Stream<Path> stream = Files.find(dirBlocks, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
 							stream.forEach(p -> {
-								String path = dir.relativize(p).toString().replace('\\', '/');
+								String path = dirBlocks.relativize(p).toString().replace('\\', '/');
 								if (path.endsWith(".mcmeta"))
 									return;
-								ResourceLocation textureId = new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.')));
+								BlockTextureId textureId = new BlockTextureId(namespace, path.substring(0, path.lastIndexOf('.')));
 								@Nullable TextureAnimationEntry animationEntry = null;
 								Path animation_path = Paths.get(p + ".mcmeta");
 								if (Files.exists(animation_path)) {
@@ -581,7 +640,7 @@ public class DynamicResourceManager {
 
 
 		private static void updateBlockModelDirectory() {
-			List<ResourceLocation> updatedBlockModelIds = new ArrayList<>();
+			List<BlockModelId> updatedBlockModelIds = new ArrayList<>();
 			//まずはblockmodelの移動
 			{
 				try (var stream1 = Files.newDirectoryStream(INSTANCE.assetsDir)) {
@@ -592,9 +651,9 @@ public class DynamicResourceManager {
 						if (Files.exists(dirBlock)) {
 							try (Stream<Path> stream = Files.find(dirBlock, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
 								stream.forEach(p -> {
-									String path = dir.relativize(p).toString().replace('\\', '/');
+									String path = dirBlock.relativize(p).toString().replace('\\', '/');
 									try {
-										ResourceLocation blockModelId = new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.')));
+										BlockModelId blockModelId = new BlockModelId(namespace, path.substring(0, path.lastIndexOf('.')));
 										updatedBlockModelIds.add(blockModelId);
 										Path new_path = dirBlock.resolve("normal").resolve(dirBlock.relativize(p));
 										Files.createDirectories(new_path.getParent());
@@ -627,8 +686,8 @@ public class DynamicResourceManager {
 								stream.filter(Files::isRegularFile).forEach(p -> {
 									try {
 										String json = FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8);
-										for (ResourceLocation updatedBlockModelId : updatedBlockModelIds) {
-											json = json.replace(updatedBlockModelId.getNamespace() + ":" + updatedBlockModelId.getPath().substring("block/".length()), updatedBlockModelId.getNamespace() + ":normal/" + updatedBlockModelId.getPath().substring("block/".length()));
+										for (BlockModelId updatedBlockModelId : updatedBlockModelIds) {
+											json = json.replace(updatedBlockModelId.namespace + ":" + updatedBlockModelId.path, updatedBlockModelId.namespace + ":normal/" + updatedBlockModelId.path);
 										}
 										Files.write(p, json.getBytes(StandardCharsets.UTF_8));
 									} catch (IOException e) {
@@ -656,8 +715,8 @@ public class DynamicResourceManager {
 								stream.forEach(p -> {
 									try {
 										String json = FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8);
-										for (ResourceLocation updatedBlockModelId : updatedBlockModelIds) {
-											json = json.replace(updatedBlockModelId.toString(), updatedBlockModelId.getNamespace() + ":block/normal/" + updatedBlockModelId.getPath().substring("block/".length()));
+										for (BlockModelId updatedBlockModelId : updatedBlockModelIds) {
+											json = json.replace(updatedBlockModelId.toString(), updatedBlockModelId.namespace + ":block/normal/" + updatedBlockModelId.path.substring("block/".length()));
 										}
 										Files.write(p, json.getBytes(StandardCharsets.UTF_8));
 									} catch (IOException e) {

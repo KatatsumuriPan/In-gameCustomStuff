@@ -1,7 +1,6 @@
 package kpan.ig_custom_stuff.block;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -14,9 +13,14 @@ import com.google.gson.JsonSerializer;
 import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.ModTagsGenerated;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
+import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
 import kpan.ig_custom_stuff.resource.IdConverter;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId.BlockModelGroupType;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import net.minecraft.client.renderer.block.model.IBakedModel;
@@ -30,81 +34,63 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class BlockStateEntry {
 
 	public static BlockStateEntry fromByteBuf(ByteBuf buf) {
 		BlockStateType blockstateType = MyByteBufUtil.readEnum(buf, BlockStateType.class);
-		BlockStateModelEntry blockStateModelEntry = BlockStateModelEntry.fromByteBuf(buf);
-		if (buf.readBoolean()) {
-			int size = MyByteBufUtil.readVarInt(buf);
-			Builder<BlockStateModelEntry> builder = ImmutableList.builder();
-			for (int i = 0; i < size; i++) {
-				builder.add(BlockStateModelEntry.fromByteBuf(buf));
-			}
-			ImmutableList<BlockStateModelEntry> customizedModelEntries = builder.build();
-			return new BlockStateEntry(blockstateType, blockStateModelEntry, true, customizedModelEntries);
-		} else {
-			return new BlockStateEntry(blockstateType, blockStateModelEntry);
+		BlockModelGroupId blockModelGroupId = BlockModelGroupId.formByteBuf(buf);
+		int rotationX = buf.readByte() * 90;
+		int rotationY = buf.readByte() * 90;
+		int count = MyByteBufUtil.readVarInt(buf);
+		ImmutableMap.Builder<String, BlockStateModelEntry> builder = ImmutableMap.builder();
+		for (int i = 0; i < count; i++) {
+			String variant = MyByteBufUtil.readString(buf);
+			BlockStateModelEntry blockStateModelEntry = BlockStateModelEntry.fromByteBuf(buf);
+			builder.put(variant, blockStateModelEntry);
 		}
+		return new BlockStateEntry(blockstateType, blockModelGroupId, rotationX, rotationY, builder.build());
 	}
 	public static BlockStateEntry fromJson(String json) {
 		return Serializer.GSON.fromJson(json, BlockStateEntry.class);
 	}
 
 	public static BlockStateEntry defaultBlockState() {
-		return new BlockStateEntry(BlockStateType.SIMPLE, new BlockStateModelEntry(new ResourceLocation(ModTagsGenerated.MODID, "not_configured_blockstate")));
+		return new BlockStateEntry(BlockStateType.SIMPLE, new BlockModelGroupId(BlockModelGroupType.NORMAL, ModTagsGenerated.MODID, "not_configured_blockstate"));
 	}
 
 	public final BlockStateType blockstateType;
-	public final BlockStateModelEntry blockStateModelEntry;
-	public final boolean customizeEach;
-	public final ImmutableList<BlockStateModelEntry> customizedModelEntries;
+	public final BlockModelGroupId blockModelGroupId;
+	public final int rotationX;
+	public final int rotationY;
+	public final ImmutableMap<String, BlockStateModelEntry> overrides;//variant->
 
-	public BlockStateEntry(BlockStateType blockstateType, BlockStateModelEntry blockStateModelEntry) {
-		this(blockstateType, blockStateModelEntry, false, ImmutableList.of());
+	public BlockStateEntry(BlockStateType blockstateType, BlockModelGroupId blockModelGroupId) {
+		this(blockstateType, blockModelGroupId, 0, 0, ImmutableMap.of());
 	}
-	public BlockStateEntry(BlockStateType blockstateType, BlockStateModelEntry blockStateModelEntry, boolean customizeEach, ImmutableList<BlockStateModelEntry> customizedModelEntries) {
+	public BlockStateEntry(BlockStateType blockstateType, BlockModelGroupId blockModelGroupId, int rotationX, int rotationY, ImmutableMap<String, BlockStateModelEntry> overrides) {
 		this.blockstateType = blockstateType;
-		this.blockStateModelEntry = blockStateModelEntry;
-		this.customizeEach = customizeEach && blockstateType != BlockStateType.SIMPLE;
-		this.customizedModelEntries = customizedModelEntries;
-		if (customizeEach) {
-			switch (blockstateType) {
-				case SIMPLE -> {
-					//無視
-				}
-				case FACE6 -> {
-					if (customizedModelEntries.size() != 6)
-						throw new IllegalArgumentException("size of blockModelIds is not 6:" + customizedModelEntries.size());
-				}
-				case HORIZONTAL4 -> {
-					if (customizedModelEntries.size() != 4)
-						throw new IllegalArgumentException("size of blockModelIds is not 4:" + customizedModelEntries.size());
-				}
-				case XYZ -> {
-					if (customizedModelEntries.size() != 3)
-						throw new IllegalArgumentException("size of blockModelIds is not 3:" + customizedModelEntries.size());
-				}
-			}
-		}
+		this.blockModelGroupId = blockModelGroupId;
+		this.rotationX = rotationX;
+		this.rotationY = rotationY;
+		this.overrides = overrides;
 	}
 
 	public void writeTo(ByteBuf buf) {
 		MyByteBufUtil.writeEnum(buf, blockstateType);
-		blockStateModelEntry.writeTo(buf);
-		if (customizeEach) {
-			buf.writeBoolean(true);
-			MyByteBufUtil.writeVarInt(buf, customizedModelEntries.size());
-			for (BlockStateModelEntry blockStateModelEntry : customizedModelEntries) {
-				blockStateModelEntry.writeTo(buf);
-			}
-		} else {
-			buf.writeBoolean(false);
+		blockModelGroupId.writeTo(buf);
+		buf.writeByte(rotationX / 90);
+		buf.writeByte(rotationY / 90);
+		MyByteBufUtil.writeVarInt(buf, overrides.size());
+		for (Entry<String, BlockStateModelEntry> entry : overrides.entrySet()) {
+			MyByteBufUtil.writeString(buf, entry.getKey());
+			entry.getValue().writeTo(buf);
 		}
 	}
 
-	public void register(ResourceLocation blockId, boolean isRemote) throws IOException {
+	public void register(BlockId blockId, boolean isRemote) throws IOException {
 		if (isRemote) {
 			ClientCache.INSTANCE.addBlockstate(blockId, this);
 		} else {
@@ -112,11 +98,29 @@ public class BlockStateEntry {
 		}
 	}
 
-	public void update(ResourceLocation blockId, boolean isRemote) throws IOException {
+	public void update(BlockId blockId, boolean isRemote) throws IOException {
 		if (isRemote) {
 			ClientCache.INSTANCE.replaceBlockstate(blockId, this);
 		} else {
 			Server.INSTANCE.replaceBlockstate(blockId, this);
+		}
+	}
+
+	public String getItemModelJson(DynamicResourceManager dynamicResourceManager) {
+		switch (blockstateType) {
+			case SIMPLE, FACE6, HORIZONTAL4, XYZ -> {
+				return "{\n" +
+						"    \"ics_itemblock_model_type\": \"block\",\n" +
+						"    \"parent\": \"" + blockModelGroupId.getRenderModelId() + "\"\n" +
+						"}\n";
+			}
+			case SLAB -> {
+				return "{\n" +
+						"    \"ics_itemblock_model_type\": \"block\",\n" +
+						"    \"parent\": \"" + blockModelGroupId.getRenderModelId() + "\"\n" +
+						"}\n";
+			}
+			default -> throw new AssertionError();
 		}
 	}
 
@@ -125,54 +129,54 @@ public class BlockStateEntry {
 	}
 
 	public String getString() {
-		return blockstateType.getString() + "(" + blockStateModelEntry + ")";
+		return blockstateType.getString() + "(" + blockModelGroupId.namespace + ":" + blockModelGroupId.path + ")";
 	}
 
 
 	public static class BlockStateModelEntry {
 
 		public static BlockStateModelEntry fromByteBuf(ByteBuf buf) {
-			ResourceLocation blockModelId = new ResourceLocation(MyByteBufUtil.readString(buf));
+			BlockModelId blockModelId = BlockModelId.formByteBuf(buf);
 			int rotationX = buf.readByte() * 90;
 			int rotationY = buf.readByte() * 90;
 			return new BlockStateModelEntry(blockModelId, rotationX, rotationY);
 		}
 
 		public static BlockStateModelEntry deserialize(JsonObject variant) {
-			ResourceLocation blockModelId = IdConverter.blockModelFile2modelId(new ResourceLocation(JsonUtils.getString(variant, "model")));
+			BlockModelId blockModelId = new BlockModelId(IdConverter.blockModelFile2modelId(new ResourceLocation(JsonUtils.getString(variant, "model"))));
 			int rotationX = JsonUtils.getInt(variant, "x", 0);
 			int rotationY = JsonUtils.getInt(variant, "y", 0);
 			return new BlockStateModelEntry(blockModelId, rotationX, rotationY);
 		}
 
-		public final ResourceLocation blockModelId;
+		public final BlockModelId blockModelId;
 		public final int rotationX;
 		public final int rotationY;
-		public BlockStateModelEntry(ResourceLocation blockModelId) {
+		public BlockStateModelEntry(BlockModelId blockModelId) {
 			this(blockModelId, 0, 0);
 		}
-		public BlockStateModelEntry(ResourceLocation blockModelId, int rotationX, int rotationY) {
+		public BlockStateModelEntry(BlockModelId blockModelId, int rotationX, int rotationY) {
 			this.blockModelId = blockModelId;
-			this.rotationX = rotationX;
-			this.rotationY = rotationY;
+			this.rotationX = Math.floorMod(rotationX, 360);
+			this.rotationY = Math.floorMod(rotationY, 360);
 		}
 
-		public BlockStateModelEntry with(ResourceLocation blockModelId) {
+		public BlockStateModelEntry with(BlockModelId blockModelId) {
 			return new BlockStateModelEntry(blockModelId, rotationX, rotationY);
 		}
 
 		public BlockStateModelEntry addRotation(int rotationX, int rotationY) {
-			return new BlockStateModelEntry(blockModelId, (this.rotationX + rotationX) % 360, (this.rotationY + rotationY) % 360);
+			return new BlockStateModelEntry(blockModelId, this.rotationX + rotationX, this.rotationY + rotationY);
 		}
 
 		public void writeTo(ByteBuf buf) {
-			MyByteBufUtil.writeString(buf, blockModelId.toString());
+			blockModelId.writeTo(buf);
 			buf.writeByte(rotationX / 90);
 			buf.writeByte(rotationY / 90);
 		}
 
 		public void serialize(JsonObject jsonObject) {
-			jsonObject.addProperty("model", IdConverter.modelId2BlockModelFile(blockModelId).toString());
+			jsonObject.addProperty("model", IdConverter.modelId2BlockModelFile(blockModelId.toResourceLocation()).toString());
 			if (rotationX != 0)
 				jsonObject.addProperty("x", rotationX);
 			if (rotationY != 0)
@@ -200,6 +204,7 @@ public class BlockStateEntry {
 		FACE6,
 		HORIZONTAL4,
 		XYZ,
+		SLAB,
 		;
 		public static BlockStateType getFromName(String name) {
 			for (BlockStateType value : values()) {
@@ -207,6 +212,17 @@ public class BlockStateEntry {
 					return value;
 			}
 			throw new IllegalArgumentException("Unknown BlockStateType!:" + name);
+		}
+		public BlockModelGroupType getModelGroupType() {
+			switch (this) {
+				case SIMPLE, FACE6, HORIZONTAL4, XYZ -> {
+					return BlockModelGroupType.NORMAL;
+				}
+				case SLAB -> {
+					return BlockModelGroupType.SLAB;
+				}
+				default -> throw new AssertionError();
+			}
 		}
 		public String getString() {
 			switch (this) {
@@ -221,6 +237,9 @@ public class BlockStateEntry {
 				}
 				case XYZ -> {
 					return I18n.format("ingame_custom_stuff.block_state.xyz_axes");
+				}
+				case SLAB -> {
+					return I18n.format("ingame_custom_stuff.block_state.slab");
 				}
 				default -> throw new AssertionError();
 			}
@@ -243,133 +262,102 @@ public class BlockStateEntry {
 			JsonObject jsonObject = json.getAsJsonObject();
 			BlockStateType type = BlockStateType.getFromName(JsonUtils.getString(jsonObject, "ics_block_state_type"));
 			JsonObject variants = JsonUtils.getJsonObject(jsonObject, "variants");
+			BlockModelGroupType blockModelGroupType;
 			BlockStateModelEntry blockStateModelEntry;
 			switch (type) {
 				case SIMPLE -> {
+					blockModelGroupType = BlockModelGroupType.NORMAL;
 					JsonObject variant = JsonUtils.getJsonObject(variants, "normal");
 					blockStateModelEntry = BlockStateModelEntry.deserialize(variant);
 				}
 				case FACE6 -> {
+					blockModelGroupType = BlockModelGroupType.NORMAL;
 					JsonObject variant = JsonUtils.getJsonObject(variants, "facing=north");
 					blockStateModelEntry = BlockStateModelEntry.deserialize(variant);
 				}
 				case HORIZONTAL4 -> {
+					blockModelGroupType = BlockModelGroupType.NORMAL;
 					JsonObject variant = JsonUtils.getJsonObject(variants, "facing=north");
 					blockStateModelEntry = BlockStateModelEntry.deserialize(variant);
 				}
 				case XYZ -> {
+					blockModelGroupType = BlockModelGroupType.NORMAL;
 					JsonObject variant = JsonUtils.getJsonObject(variants, "axis=y");
+					blockStateModelEntry = BlockStateModelEntry.deserialize(variant);
+				}
+				case SLAB -> {
+					blockModelGroupType = BlockModelGroupType.SLAB;
+					JsonObject variant = JsonUtils.getJsonObject(variants, "slab=double");
 					blockStateModelEntry = BlockStateModelEntry.deserialize(variant);
 				}
 				default -> throw new AssertionError();
 			}
 
-			if (jsonObject.has("model_customized") && type != BlockStateType.SIMPLE) {
-				Builder<BlockStateModelEntry> builder = ImmutableList.builder();
-				switch (type) {
-					case FACE6 -> {
-						for (EnumFacing facing : EnumFacing.VALUES) {
-							JsonObject variant = JsonUtils.getJsonObject(variants, "facing=" + facing);
-							builder.add(BlockStateModelEntry.deserialize(variant));
-						}
-					}
-					case HORIZONTAL4 -> {
-						for (EnumFacing facing : EnumFacing.HORIZONTALS) {
-							JsonObject variant = JsonUtils.getJsonObject(variants, "facing=" + facing);
-							builder.add(BlockStateModelEntry.deserialize(variant));
-						}
-					}
-					case XYZ -> {
-						builder.add(BlockStateModelEntry.deserialize(JsonUtils.getJsonObject(variants, "axis=x")));
-						builder.add(BlockStateModelEntry.deserialize(JsonUtils.getJsonObject(variants, "axis=y")));
-						builder.add(BlockStateModelEntry.deserialize(JsonUtils.getJsonObject(variants, "axis=z")));
-					}
-					default -> throw new AssertionError();
-				}
-				ImmutableList<BlockStateModelEntry> customizedModelEntries = builder.build();
-				return new BlockStateEntry(type, blockStateModelEntry, true, customizedModelEntries);
-			} else {
-				return new BlockStateEntry(type, blockStateModelEntry);
-			}
+			return new BlockStateEntry(type, new BlockModelGroupId(blockModelGroupType, blockStateModelEntry.blockModelId), blockStateModelEntry.rotationX, blockStateModelEntry.rotationY, ImmutableMap.of());
 		}
 
 		@Override
 		public JsonElement serialize(BlockStateEntry object, Type type, JsonSerializationContext context) {
 			JsonObject jsonobject = new JsonObject();
 			jsonobject.add("ics_block_state_type", context.serialize(object.blockstateType));
-			if (object.customizeEach)
-				jsonobject.addProperty("model_customized", true);
 			JsonObject variants = new JsonObject();
 			switch (object.blockstateType) {
 				case SIMPLE -> {
 					JsonObject normal = new JsonObject();
-					object.blockStateModelEntry.serialize(normal);
+					new BlockStateModelEntry(object.blockModelGroupId.getRenderModelId(), object.rotationX, object.rotationY).serialize(normal);
 					variants.add("normal", normal);
 				}
 				case FACE6 -> {
-					if (object.customizeEach) {
-						for (EnumFacing facing : EnumFacing.VALUES) {
-							JsonObject obj = new JsonObject();
-							object.customizedModelEntries.get(facing.getIndex()).serialize(obj);
-							variants.add("facing=" + facing, obj);
+					BlockStateModelEntry baseModel = new BlockStateModelEntry(object.blockModelGroupId.getRenderModelId(), object.rotationX, object.rotationY);
+					for (EnumFacing facing : EnumFacing.VALUES) {
+						JsonObject variant = new JsonObject();
+						switch (facing) {
+							case DOWN -> baseModel.addRotation(90, 0).serialize(variant);
+							case UP -> baseModel.addRotation(270, 0).serialize(variant);
+							case NORTH -> baseModel.addRotation(0, 0).serialize(variant);
+							case SOUTH -> baseModel.addRotation(0, 180).serialize(variant);
+							case WEST -> baseModel.addRotation(0, 270).serialize(variant);
+							case EAST -> baseModel.addRotation(0, 90).serialize(variant);
 						}
-					} else {
-						for (EnumFacing facing : EnumFacing.VALUES) {
-							JsonObject variant = new JsonObject();
-							switch (facing) {
-								case DOWN -> object.blockStateModelEntry.addRotation(90, 0).serialize(variant);
-								case UP -> object.blockStateModelEntry.addRotation(270, 0).serialize(variant);
-								case NORTH -> object.blockStateModelEntry.addRotation(0, 0).serialize(variant);
-								case SOUTH -> object.blockStateModelEntry.addRotation(0, 180).serialize(variant);
-								case WEST -> object.blockStateModelEntry.addRotation(0, 270).serialize(variant);
-								case EAST -> object.blockStateModelEntry.addRotation(0, 90).serialize(variant);
-							}
-							variants.add("facing=" + facing, variant);
-						}
+						variants.add("facing=" + facing, variant);
 					}
 				}
 				case HORIZONTAL4 -> {
-					if (object.customizeEach) {
-						for (EnumFacing facing : EnumFacing.HORIZONTALS) {
-							JsonObject obj = new JsonObject();
-							object.customizedModelEntries.get(facing.getHorizontalIndex()).serialize(obj);
-							variants.add("facing=" + facing, obj);
+					BlockStateModelEntry baseModel = new BlockStateModelEntry(object.blockModelGroupId.getRenderModelId(), object.rotationX, object.rotationY);
+					for (EnumFacing facing : EnumFacing.HORIZONTALS) {
+						JsonObject variant = new JsonObject();
+						switch (facing) {
+							case NORTH -> baseModel.addRotation(0, 0).serialize(variant);
+							case SOUTH -> baseModel.addRotation(0, 180).serialize(variant);
+							case WEST -> baseModel.addRotation(0, 270).serialize(variant);
+							case EAST -> baseModel.addRotation(0, 90).serialize(variant);
 						}
-					} else {
-						for (EnumFacing facing : EnumFacing.HORIZONTALS) {
-							JsonObject variant = new JsonObject();
-							switch (facing) {
-								case NORTH -> object.blockStateModelEntry.addRotation(0, 0).serialize(variant);
-								case SOUTH -> object.blockStateModelEntry.addRotation(0, 180).serialize(variant);
-								case WEST -> object.blockStateModelEntry.addRotation(0, 270).serialize(variant);
-								case EAST -> object.blockStateModelEntry.addRotation(0, 90).serialize(variant);
-							}
-							variants.add("facing=" + facing, variant);
-						}
+						variants.add("facing=" + facing, variant);
 					}
 				}
 				case XYZ -> {
-					if (object.customizeEach) {
-						JsonObject x = new JsonObject();
-						object.customizedModelEntries.get(0).serialize(x);
-						variants.add("axis=x", x);
-						JsonObject y = new JsonObject();
-						object.customizedModelEntries.get(1).serialize(y);
-						variants.add("axis=y", y);
-						JsonObject z = new JsonObject();
-						object.customizedModelEntries.get(2).serialize(z);
-						variants.add("axis=z", z);
-					} else {
-						JsonObject x = new JsonObject();
-						object.blockStateModelEntry.addRotation(90, 90).serialize(x);
-						variants.add("axis=x", x);
-						JsonObject y = new JsonObject();
-						object.blockStateModelEntry.addRotation(0, 0).serialize(y);
-						variants.add("axis=y", y);
-						JsonObject z = new JsonObject();
-						object.blockStateModelEntry.addRotation(90, 0).serialize(z);
-						variants.add("axis=z", z);
-					}
+					BlockStateModelEntry baseModel = new BlockStateModelEntry(object.blockModelGroupId.getRenderModelId(), object.rotationX, object.rotationY);
+					JsonObject x = new JsonObject();
+					baseModel.addRotation(90, 90).serialize(x);
+					variants.add("axis=x", x);
+					JsonObject y = new JsonObject();
+					baseModel.addRotation(0, 0).serialize(y);
+					variants.add("axis=y", y);
+					JsonObject z = new JsonObject();
+					baseModel.addRotation(90, 0).serialize(z);
+					variants.add("axis=z", z);
+				}
+				case SLAB -> {
+					Map<String, BlockModelId> map = object.blockModelGroupId.getBlockModelIds();
+					JsonObject top = new JsonObject();
+					new BlockStateModelEntry(map.get("top"), object.rotationX, object.rotationY).serialize(top);
+					variants.add("slab=top", top);
+					JsonObject bottom = new JsonObject();
+					new BlockStateModelEntry(map.get("bottom"), object.rotationX, object.rotationY).serialize(bottom);
+					variants.add("slab=bottom", bottom);
+					JsonObject dbl = new JsonObject();
+					new BlockStateModelEntry(map.get("double"), object.rotationX, object.rotationY).serialize(dbl);
+					variants.add("slab=double", dbl);
 				}
 				default -> throw new AssertionError();
 			}

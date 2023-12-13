@@ -7,9 +7,9 @@ import kpan.ig_custom_stuff.network.MessageUtil;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.server.MessageDeleteBlockModelsToClient;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -22,9 +22,9 @@ public class MessageDeleteBlockModelsToServer extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageDeleteBlockModelsToServer() { }
 
-	private List<ResourceLocation> modelIds;
+	private List<BlockModelId> modelIds;
 
-	public MessageDeleteBlockModelsToServer(List<ResourceLocation> modelIds) {
+	public MessageDeleteBlockModelsToServer(List<BlockModelId> modelIds) {
 		this.modelIds = modelIds;
 	}
 
@@ -33,15 +33,15 @@ public class MessageDeleteBlockModelsToServer extends MessageBase {
 		int count = readVarInt(buf);
 		modelIds = new ArrayList<>();
 		for (int i = 0; i < count; i++) {
-			ResourceLocation id = new ResourceLocation(readString(buf));
+			BlockModelId id = BlockModelId.formByteBuf(buf);
 			modelIds.add(id);
 		}
 	}
 	@Override
 	public void toBytes(ByteBuf buf) {
 		writeVarInt(buf, modelIds.size());
-		for (ResourceLocation textureId : modelIds) {
-			writeString(buf, textureId.toString());
+		for (BlockModelId modelId : modelIds) {
+			modelId.writeTo(buf);
 		}
 	}
 
@@ -55,8 +55,8 @@ public class MessageDeleteBlockModelsToServer extends MessageBase {
 			return;
 		}
 
-		List<ResourceLocation> succeeded = new ArrayList<>();
-		for (ResourceLocation modelId : modelIds) {
+		List<BlockModelId> succeeded = new ArrayList<>();
+		for (BlockModelId modelId : modelIds) {
 			try {
 				if (Server.INSTANCE.removeBlockModel(modelId))
 					succeeded.add(modelId);

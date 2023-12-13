@@ -7,11 +7,10 @@ import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
-import kpan.ig_custom_stuff.resource.IdConverter;
 import kpan.ig_custom_stuff.resource.RemovedResourcesResourcePack;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
@@ -23,20 +22,20 @@ public class MessageDeleteItemEntryToClient extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageDeleteItemEntryToClient() { }
 
-	private ResourceLocation itemId;
+	private ItemId itemId;
 
-	public MessageDeleteItemEntryToClient(ResourceLocation itemId) {
+	public MessageDeleteItemEntryToClient(ItemId itemId) {
 		this.itemId = itemId;
 	}
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
-		itemId = new ResourceLocation(readString(buf));
+		itemId = ItemId.formByteBuf(buf);
 	}
 
 	@Override
 	public void toBytes(ByteBuf buf) {
-		writeString(buf, itemId.toString());
+		itemId.writeTo(buf);
 	}
 
 	@Override
@@ -46,7 +45,7 @@ public class MessageDeleteItemEntryToClient extends MessageBase {
 	}
 
 	private static class Client {
-		public static void doAction(ResourceLocation itemId) {
+		public static void doAction(ItemId itemId) {
 			try {
 				ClientCache.INSTANCE.removeItemModel(itemId);
 				ClientCache.INSTANCE.removeItemNameLang("en_us", itemId);
@@ -55,7 +54,7 @@ public class MessageDeleteItemEntryToClient extends MessageBase {
 			}
 			RemovedResourcesResourcePack.INSTANCE.addRemovedItem(itemId);
 			DynamicResourceLoader.putLang(DynamicResourceManager.toTranslationKeyItem(itemId), DynamicResourceLoader.REMOVED_ITEM_NAME);
-			DynamicResourceLoader.loadItemModels(Collections.singletonList(IdConverter.itemId2ItemModelName(itemId)));
+			DynamicResourceLoader.loadItemModels(Collections.singletonList(itemId));
 			DynamicResourceLoader.reloadItemModelMesh(itemId);
 			GuiScreen screen = Minecraft.getMinecraft().currentScreen;
 			if (screen instanceof GuiItemMenu guiTextureMenu)

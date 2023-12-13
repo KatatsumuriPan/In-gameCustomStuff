@@ -1,6 +1,7 @@
 package kpan.ig_custom_stuff.asm.hook;
 
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import net.minecraft.client.renderer.block.model.Variant;
 import net.minecraft.client.renderer.block.model.VariantList;
 import net.minecraft.util.ResourceLocation;
@@ -14,6 +15,6 @@ public class HK_WeightedRandomModel {
 		int index = path.indexOf('#');
 		if (index >= 0)
 			path = path.substring(0, index);
-		DynamicResourceLoader.addBlockModelDependency(new ResourceLocation(parent.getNamespace(), path), variants.getVariantList().stream().map(Variant::getModelLocation).collect(Collectors.toList()));
+		DynamicResourceLoader.addBlockModelDependency(new BlockId(parent.getNamespace(), path), variants.getVariantList().stream().map(Variant::getModelLocation).collect(Collectors.toList()));
 	}
 }

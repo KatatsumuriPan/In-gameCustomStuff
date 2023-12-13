@@ -10,6 +10,7 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageRegisterBlockEntryToServer;
 import kpan.ig_custom_stuff.network.client.MessageReplaceBlockEntryToServer;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
@@ -67,9 +68,10 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 		blockNameField.setMaxStringLength(32767);
 		blockNameField.setText(initBlockName);
 
-		addButton(new GuiButton(3, 100, 120, 200, 20, I18n.format("gui.ingame_custom_stuff.addedit_block.edit_block_property")));
+		blockStateBtn = addButton(new GuiButton(2, 100, 120, 200, 20, ""));
 
-		blockStateBtn = addButton(new GuiButton(2, 100, 150, 200, 20, ""));
+		addButton(new GuiButton(3, 100, 160, 200, 20, I18n.format("gui.ingame_custom_stuff.addedit_block.edit_block_property")));
+
 
 		blockIdField.setFocused(true);
 		blockIdField.setEnabled(isAdd);
@@ -89,7 +91,7 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 				String blockId = blockIdField.getText();
 				if (!blockId.contains(":"))
 					blockId = ModReference.DEFAULT_NAMESPACE + ":" + blockId;
-				BlockEntry blockEntry = new BlockEntry(new ResourceLocation(blockId), blockStateEntry.blockstateType, blockPropertyEntry);
+				BlockEntry blockEntry = new BlockEntry(new BlockId(new ResourceLocation(blockId)), blockStateEntry.blockstateType, blockPropertyEntry);
 				BlockLangEntry blockLangEntry = new BlockLangEntry(blockNameField.getText());
 				if (isAdd)
 					MyPacketHandler.sendToServer(new MessageRegisterBlockEntryToServer(blockEntry, blockStateEntry, blockLangEntry));
@@ -99,7 +101,9 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 			}
 			case 1 -> parent.redisplay();
 			case 2 -> {
-				mc.displayGuiScreen(new GuiConfigureBlockState(this, blockStateEntry, blockStateEntry -> this.blockStateEntry = blockStateEntry));
+				mc.displayGuiScreen(new GuiConfigureBlockState(this, blockStateEntry, blockStateEntry -> {
+					this.blockStateEntry = blockStateEntry;
+				}));
 			}
 			case 3 -> {
 				mc.displayGuiScreen(new GuiEditBlockProperty(this, blockPropertyEntry, blockPropertyEntry -> this.blockPropertyEntry = blockPropertyEntry));
@@ -142,11 +146,11 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 		if (blockNameField.getText().isEmpty())
 			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.error.name.empty"), 100 + 4, 100 + 4, 0xFFFF2222);
 
-		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block.label.property"), 20, 120 + 7, 0xFFA0A0A0);
-
-		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block.label.blockstate"), 20, 150 + 7, 0xFFA0A0A0);
+		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block.label.blockstate"), 20, 120 + 7, 0xFFA0A0A0);
 		if (blockStateEntry == null)
-			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.error.model.not_configured"), 100 + 4, 170 + 4, 0xFFFF2222);
+			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.error.model.not_configured"), 100 + 4, 140 + 4, 0xFFFF2222);
+
+		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block.label.property"), 20, 160 + 7, 0xFFA0A0A0);
 
 
 		super.drawScreen(mouseX, mouseY, partialTicks);

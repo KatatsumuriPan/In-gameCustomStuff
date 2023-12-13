@@ -1,23 +1,22 @@
 package kpan.ig_custom_stuff.gui.block;
 
-import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateModelEntry;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.gui.MyGuiList;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 @SideOnly(Side.CLIENT)
 public class GuiEditBlockModelRotation extends GuiScreen implements IMyGuiScreen {
@@ -25,22 +24,20 @@ public class GuiEditBlockModelRotation extends GuiScreen implements IMyGuiScreen
 	private final IMyGuiScreen parent;
 	private GuiButton doneButton;
 	private MyGuiList guiList;
-	private final BlockStateModelEntry beforeBlockStateModelEntry;
-	private final Consumer<BlockStateModelEntry> onCompleted;
-	private ResourceLocation modelId;
+	private final BiConsumer<Integer, Integer> onCompleted;
+	private final BlockModelId modelId;
 	private int rotationX;
 	private int rotationY;
 	private int drawLeft;
 	private int drawWidth;
 
 
-	public GuiEditBlockModelRotation(IMyGuiScreen parent, BlockStateModelEntry beforeBlockStateModelEntry, Consumer<BlockStateModelEntry> onCompleted) {
+	public GuiEditBlockModelRotation(IMyGuiScreen parent, BlockModelId modelId, int rotationX, int rotationY, BiConsumer<Integer, Integer> onCompleted) {
 		this.parent = parent;
-		this.beforeBlockStateModelEntry = beforeBlockStateModelEntry;
 		this.onCompleted = onCompleted;
-		modelId = beforeBlockStateModelEntry.blockModelId;
-		rotationX = beforeBlockStateModelEntry.rotationX;
-		rotationY = beforeBlockStateModelEntry.rotationY;
+		this.modelId = modelId;
+		this.rotationX = rotationX;
+		this.rotationY = rotationY;
 	}
 
 	@Override
@@ -69,7 +66,7 @@ public class GuiEditBlockModelRotation extends GuiScreen implements IMyGuiScreen
 	protected void actionPerformed(GuiButton button) {
 		switch (button.id) {
 			case 0 -> {
-				onCompleted.accept(new BlockStateModelEntry(modelId, rotationX, rotationY));
+				onCompleted.accept(rotationX, rotationY);
 				parent.redisplay();
 			}
 			case 1 -> parent.redisplay();
