@@ -343,7 +343,8 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 			drawTexture(x, y, sprite, TextureUV.DEFAULT, 0);
 		}
 		Gui.drawRect(viewLeft, 80, width - 10, height - 30, -1);
-		RenderUtil.renderModel(viewLeft, 80, Math.min(width - 10 - 250, height - 30 - 80) / 16f, rotateYaw, rotatePitch, modelCache);
+		int w = Math.min(width - 10 - 250, height - 30 - 80);
+		RenderUtil.renderModel(viewLeft + (width - 10 - viewLeft) / 2 - w / 2, 80, w / 16f, rotateYaw, rotatePitch, modelCache);
 		drawString(fontRenderer, "N", 100 - textureSize + 1, buttonTop + textureSize + 1, 0xFFFF2222);
 
 		for (GuiButton guibutton : buttonList) {
