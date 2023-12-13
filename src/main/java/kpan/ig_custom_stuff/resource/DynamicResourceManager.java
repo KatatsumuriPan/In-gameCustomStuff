@@ -554,7 +554,125 @@ public class DynamicResourceManager {
 			resourcePackDir = server.getActiveAnvilConverter().getFile(server.getFolderName(), ModTagsGenerated.MODID).toPath().resolve("resourcepack");
 			INSTANCE = new DynamicResourceManager(resourcePackDir, n -> {
 			});
+			checkAndUpdateVersion();
 			INSTANCE.readFolder();
+		}
+
+		private static void checkAndUpdateVersion() {
+			try {
+				Path version_path = resourcePackDir.getParent().resolve("resourcepack_version.txt");
+				if (!Files.exists(version_path)) {
+					//初期バージョン
+					updateBlockModelDirectory();
+				} else {
+					String version = FileUtils.readFileToString(version_path.toFile(), StandardCharsets.UTF_8);
+					switch (version) {
+						case "1" -> {
+							//最新
+						}
+						default -> throw new RuntimeException("Unknown resource pack version:" + version);
+					}
+				}
+				Files.write(version_path, "1".getBytes(StandardCharsets.UTF_8));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+
+		private static void updateBlockModelDirectory() {
+			List<ResourceLocation> updatedBlockModelIds = new ArrayList<>();
+			//まずはblockmodelの移動
+			{
+				try (var stream1 = Files.newDirectoryStream(INSTANCE.assetsDir)) {
+					for (Path namespace_dir : stream1) {
+						String namespace = namespace_dir.getFileName().toString();
+						Path dir = namespace_dir.resolve("models");
+						Path dirBlock = dir.resolve("block");
+						if (Files.exists(dirBlock)) {
+							try (Stream<Path> stream = Files.find(dirBlock, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
+								stream.forEach(p -> {
+									String path = dir.relativize(p).toString().replace('\\', '/');
+									try {
+										ResourceLocation blockModelId = new ResourceLocation(namespace, path.substring(0, path.lastIndexOf('.')));
+										updatedBlockModelIds.add(blockModelId);
+										Path new_path = dirBlock.resolve("normal").resolve(dirBlock.relativize(p));
+										Files.createDirectories(new_path.getParent());
+										Files.move(p, new_path);
+									} catch (IOException e) {
+										throw new RuntimeException(e);
+									} catch (JsonSyntaxException e) {
+										throw new RuntimeException("Invalid json file:" + p, e);
+									}
+								});
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			if (updatedBlockModelIds.isEmpty())
+				return;
+
+			//blockStatesのアップデート
+			{
+				try (var stream1 = Files.newDirectoryStream(INSTANCE.assetsDir)) {
+					for (Path namespace_dir : stream1) {
+						Path dir = namespace_dir.resolve("blockstates");
+						if (Files.exists(dir)) {
+							try (Stream<Path> stream = Files.list(dir)) {
+								stream.filter(Files::isRegularFile).forEach(p -> {
+									try {
+										String json = FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8);
+										for (ResourceLocation updatedBlockModelId : updatedBlockModelIds) {
+											json = json.replace(updatedBlockModelId.getNamespace() + ":" + updatedBlockModelId.getPath().substring("block/".length()), updatedBlockModelId.getNamespace() + ":normal/" + updatedBlockModelId.getPath().substring("block/".length()));
+										}
+										Files.write(p, json.getBytes(StandardCharsets.UTF_8));
+									} catch (IOException e) {
+										throw new RuntimeException(e);
+									}
+								});
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			//itemModelsのアップデート
+			{
+				try (var stream1 = Files.newDirectoryStream(INSTANCE.assetsDir)) {
+					for (Path namespace_dir : stream1) {
+						String namespace = namespace_dir.getFileName().toString();
+						Path dir = namespace_dir.resolve("models");
+						Path dirItem = dir.resolve("item");
+						if (Files.exists(dirItem)) {
+							try (Stream<Path> stream = Files.find(dirItem, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
+								stream.forEach(p -> {
+									try {
+										String json = FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8);
+										for (ResourceLocation updatedBlockModelId : updatedBlockModelIds) {
+											json = json.replace(updatedBlockModelId.toString(), updatedBlockModelId.getNamespace() + ":block/normal/" + updatedBlockModelId.getPath().substring("block/".length()));
+										}
+										Files.write(p, json.getBytes(StandardCharsets.UTF_8));
+									} catch (IOException e) {
+										throw new RuntimeException(e);
+									}
+								});
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
 	}
 
