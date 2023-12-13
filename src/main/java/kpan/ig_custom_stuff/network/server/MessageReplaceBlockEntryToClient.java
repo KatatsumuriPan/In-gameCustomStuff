@@ -58,7 +58,7 @@ public class MessageReplaceBlockEntryToClient extends MessageBase {
 
 	private static class Client {
 		public static void doAction(ResourceLocation blockId, BlockStateEntry blockStateEntry) throws IOException {
-			ClientCache.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockId), blockStateEntry.blockModelId);
+			ClientCache.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockId), blockStateEntry.blockStateModelEntry.blockModelId);
 			DynamicResourceLoader.loadBlockResources(blockId);
 			DynamicResourceLoader.reloadAllChunks();
 			GuiScreen screen = Minecraft.getMinecraft().currentScreen;

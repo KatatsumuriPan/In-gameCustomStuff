@@ -5,7 +5,6 @@ import kpan.ig_custom_stuff.block.BlockEntry;
 import kpan.ig_custom_stuff.block.BlockLangEntry;
 import kpan.ig_custom_stuff.block.BlockPropertyEntry;
 import kpan.ig_custom_stuff.block.BlockStateEntry;
-import kpan.ig_custom_stuff.gui.GuiDropDownButton;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageRegisterBlockEntryToServer;
@@ -44,7 +43,7 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 	private GuiTextField blockIdField;
 	private @Nullable String blockIdError = null;
 	private GuiTextField blockNameField;
-	private GuiButton blockModelBtn;
+	private GuiButton blockStateBtn;
 	private BlockPropertyEntry blockPropertyEntry;
 	private @Nullable BlockStateEntry blockStateEntry;
 
@@ -68,11 +67,9 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 		blockNameField.setMaxStringLength(32767);
 		blockNameField.setText(initBlockName);
 
-		blockModelBtn = addButton(new GuiDropDownButton(2, 100, 150, 200, 20, ""));
-
-
 		addButton(new GuiButton(3, 100, 120, 200, 20, I18n.format("gui.ingame_custom_stuff.addedit_block.edit_block_property")));
 
+		blockStateBtn = addButton(new GuiButton(2, 100, 150, 200, 20, ""));
 
 		blockIdField.setFocused(true);
 		blockIdField.setEnabled(isAdd);
@@ -147,7 +144,7 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 
 		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block.label.property"), 20, 120 + 7, 0xFFA0A0A0);
 
-		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block.label.model"), 20, 150 + 7, 0xFFA0A0A0);
+		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block.label.blockstate"), 20, 150 + 7, 0xFFA0A0A0);
 		if (blockStateEntry == null)
 			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.error.model.not_configured"), 100 + 4, 170 + 4, 0xFFFF2222);
 
@@ -178,9 +175,9 @@ public class GuiAddEditBlock extends GuiScreen implements IMyGuiScreen {
 
 	private void updateModelButton() {
 		if (blockStateEntry == null) {
-			blockModelBtn.displayString = I18n.format("ingame_custom_stuff.block_model.none");
+			blockStateBtn.displayString = I18n.format("ingame_custom_stuff.block_model.none");
 		} else {
-			blockModelBtn.displayString = mc.fontRenderer.trimStringToWidth(blockStateEntry.getString(), blockModelBtn.width - 4);
+			blockStateBtn.displayString = mc.fontRenderer.trimStringToWidth(blockStateEntry.getString(), blockStateBtn.width - 4);
 		}
 	}
 }

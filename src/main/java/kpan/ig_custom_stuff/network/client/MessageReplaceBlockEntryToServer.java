@@ -102,12 +102,12 @@ public class MessageReplaceBlockEntryToServer extends MessageBase {
 			}
 		}
 		try {
-			Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockModelId);
+			Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockStateModelEntry.blockModelId);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to save an item block model file", e);
 				ModMain.LOGGER.error("Trying again...");
-				Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockModelId);
+				Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockStateModelEntry.blockModelId);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save an item block model file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.update.item_block_model", blockId);

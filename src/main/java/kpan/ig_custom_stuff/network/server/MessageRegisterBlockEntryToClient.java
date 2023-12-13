@@ -61,7 +61,7 @@ public class MessageRegisterBlockEntryToClient extends MessageBase {
 
 	private static class Client {
 		public static void doAction(ResourceLocation blockId, BlockStateEntry blockStateEntry) throws IOException {
-			ClientCache.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockId), blockStateEntry.blockModelId);
+			ClientCache.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockId), blockStateEntry.blockStateModelEntry.blockModelId);
 			RemovedResourcesResourcePack.INSTANCE.removeRemovedBlock(blockId);
 			DynamicResourceLoader.registerBlockStateMapper((DynamicBlockBase) MCRegistryUtil.BLOCK_REGISTRY.getValue(blockId));
 			DynamicResourceLoader.loadBlockResources(blockId);
