@@ -66,7 +66,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 	private final IMyGuiScreen parent;
 	private final boolean isAdd;
 	private GuiButton createButton;
-	private GuiButton modelTypeBtn;
+	private GuiButton isCageBtn;
 	private String initModelId = "";
 	private GuiTextField modelIdField;
 	private @Nullable String modelIdError = null;
@@ -89,7 +89,8 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		Keyboard.enableRepeatEvents(true);
 		createButton = addButton(new GuiButton(0, width / 2 - 155, height - 28, 150, 20, I18n.format("gui.done")));
 		addButton(new GuiButton(1, width / 2 + 5, height - 28, 150, 20, I18n.format("gui.cancel")));
-		modelTypeBtn = addButton(new GuiButton(2, width - 150, 20, 150, 20, ""));
+
+		isCageBtn = addButton(new GuiButton(2, 100, 75, 80, 20, ""));
 		modelIdField = new GuiTextField(100, fontRenderer, 100, 40, 200, 20);
 		modelIdField.setMaxStringLength(32767);
 		modelIdField.setText(initModelId);
@@ -293,6 +294,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 		else if (!modelIdField.getText().contains(":"))
 			drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.info.default_namespace_message", ModReference.DEFAULT_NAMESPACE), 100 + 4, 60 + 4, 0xFF22FF22);
 
+		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block_model.label.is_cage"), 20, 75 + 7, 0xFFA0A0A0);
 
 		drawString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block_model.label.textures"), 20, 110, 0xFFA0A0A0);
 		drawCenteredString(fontRenderer, I18n.format("gui.ingame_custom_stuff.addedit_block_model.label.particle"), (int) (100 + textureSize * 4), buttonTop - 10, 0xFFA0A0A0);
@@ -379,7 +381,7 @@ public class GuiAddEditBlockModel extends GuiScreen implements IMyGuiScreen {
 	}
 
 	private void updateButtonText() {
-		modelTypeBtn.displayString = blockModelEntry.modelType.getString();
+		isCageBtn.displayString = blockModelEntry.isCage() ? "true" : "false";
 	}
 
 	private ResourceLocation getModelId() {

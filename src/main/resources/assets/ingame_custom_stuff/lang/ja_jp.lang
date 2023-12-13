@@ -39,6 +39,7 @@ gui.ingame_custom_stuff.select_block_model.title=ブロックモデルの選択
 gui.ingame_custom_stuff.addedit_block_model.title.add=ブロックモデルの追加
 gui.ingame_custom_stuff.addedit_block_model.title.edit=ブロックモデルの編集
 gui.ingame_custom_stuff.addedit_block_model.label.block_model_id=モデルID
+gui.ingame_custom_stuff.addedit_block_model.label.is_cage=かご
 gui.ingame_custom_stuff.addedit_block_model.label.textures=テクスチャ
 gui.ingame_custom_stuff.addedit_block_model.label.particle=パーティクル
 gui.ingame_custom_stuff.addedit_block_model.button_label.all=全て

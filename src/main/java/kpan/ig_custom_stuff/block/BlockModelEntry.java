@@ -59,6 +59,10 @@ public class BlockModelEntry {
 			throw new IllegalArgumentException("The length of faces must be 6!");
 	}
 
+	public boolean isCage() {
+		return modelType == ModelType.CAGE;
+	}
+
 	public void writeTo(ByteBuf buf) {
 		MyByteBufUtil.writeEnum(buf, modelType);
 		for (BlockModelFaceEntry face : faces) {
