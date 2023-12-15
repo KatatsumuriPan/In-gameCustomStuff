@@ -62,7 +62,7 @@ public class DynamicServerRegistryManager {
 								ModMain.LOGGER.info("Try add default item model.");
 								Server.INSTANCE.addModel(itemId, ItemModelEntry.defaultModel());
 							}
-							if (Server.INSTANCE.hasItemNameLang("en_us", itemId)) {
+							if (!Server.INSTANCE.hasItemNameLang("en_us", itemId)) {
 								ModMain.LOGGER.info("A lang of {} is not found.", itemId);
 								ModMain.LOGGER.info("Try add default lang.");
 								ItemLangEntry.defaultLang(itemId.getPath()).register(itemId, false);
@@ -153,7 +153,7 @@ public class DynamicServerRegistryManager {
 								ModMain.LOGGER.info("Try add default block state.");
 								Server.INSTANCE.addBlockstate(blockId, BlockStateEntry.defaultBlockState());
 							}
-							if (Server.INSTANCE.hasBlockNameLang("en_us", blockId)) {
+							if (!Server.INSTANCE.hasBlockNameLang("en_us", blockId)) {
 								ModMain.LOGGER.info("A lang of {} is not found.", blockId);
 								ModMain.LOGGER.info("Try add default lang.");
 								BlockLangEntry.defaultLang(blockId.getPath()).register(blockId, false);
