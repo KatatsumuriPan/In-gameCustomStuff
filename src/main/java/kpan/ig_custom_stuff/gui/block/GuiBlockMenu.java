@@ -103,19 +103,23 @@ public class GuiBlockMenu extends GuiScreen implements IMyGuiScreen {
 
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+		//blockListの後に描画するとCAGEモデルの向きがバグる
+		//理由は不明
+		{
+			int w = Math.min(height / 3, (int) (infoWidth * 0.8));
+			int l = infoLeft + ((infoWidth - w) / 2);
+			Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
+			Gui.drawRect(l, 0, l + w, w, -1);
+			BlockId blockId = blockList.getSelectedBlockId();
+			if (blockId != null) {
+				Block block = Block.REGISTRY.getObject(blockId.toResourceLocation());
+				RenderUtil.renderItemIntoGUI(new ItemStack(block, 1), l, 0, w / 16f);
+				String usName = ClientCache.INSTANCE.getBlockNameLang("en_us", blockId);
+				drawString(mc.fontRenderer, usName, infoLeft + 4, w + 4, -1);
+			}
+		}
 		blockList.drawScreen(mouseX, mouseY, partialTicks);
 		drawCenteredString(fontRenderer, I18n.format("gui.ingame_custom_stuff.block_menu.title"), 145, 8 - 4, 16777215);
-		int w = Math.min(height / 3, (int) (infoWidth * 0.8));
-		int l = infoLeft + ((infoWidth - w) / 2);
-		Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
-		Gui.drawRect(l, 0, l + w, w, -1);
-		BlockId blockId = blockList.getSelectedBlockId();
-		if (blockId != null) {
-			Block block = Block.REGISTRY.getObject(blockId.toResourceLocation());
-			RenderUtil.renderItemIntoGUI(new ItemStack(block, 1), l, 0, w / 16f);
-			String usName = ClientCache.INSTANCE.getBlockNameLang("en_us", blockId);
-			drawString(mc.fontRenderer, usName, infoLeft + 4, w + 4, -1);
-		}
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		searchField.drawTextBox();
 	}
