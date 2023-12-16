@@ -10,9 +10,9 @@ import kpan.ig_custom_stuff.network.MessageUtil;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.server.MessageEditItemEntryToClient;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -50,7 +50,7 @@ public class MessageReplaceItemEntryToServer extends MessageBase {
 	public void doAction(MessageContext ctx) {
 		EntityPlayerMP sender = ctx.getServerHandler().player;
 		MinecraftServer server = sender.server;
-		ResourceLocation itemId = itemEntry.itemId;
+		ItemId itemId = itemEntry.itemId;
 		if (!MCRegistryUtil.isItemRegistered(itemId)) {
 			sender.sendMessage(new TextComponentTranslation("registry_message.item.error.not_found", itemId));
 			return;
@@ -71,12 +71,12 @@ public class MessageReplaceItemEntryToServer extends MessageBase {
 			}
 		}
 		try {
-			itemModelEntry.update(itemEntry.itemId, false);
+			itemModelEntry.update(itemId, false);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to save an item model file", e);
 				ModMain.LOGGER.error("Trying again...");
-				itemModelEntry.update(itemEntry.itemId, false);
+				itemModelEntry.update(itemId, false);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save an item model file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.item.error.io.update.item_model", itemId);
@@ -84,12 +84,12 @@ public class MessageReplaceItemEntryToServer extends MessageBase {
 			}
 		}
 		try {
-			itemLangEntry.update(itemEntry.itemId, false);
+			itemLangEntry.update(itemId, false);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to save a lang file", e);
 				ModMain.LOGGER.error("Trying again...");
-				itemLangEntry.update(itemEntry.itemId, false);
+				itemLangEntry.update(itemId, false);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save a lang", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.item.error.io.update.item_lang", itemId);

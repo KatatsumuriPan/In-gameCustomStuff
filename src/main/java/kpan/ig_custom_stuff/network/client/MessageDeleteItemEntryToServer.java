@@ -9,9 +9,9 @@ import kpan.ig_custom_stuff.network.server.MessageDeleteItemEntryToClient;
 import kpan.ig_custom_stuff.registry.DynamicServerRegistryManager;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -21,20 +21,20 @@ public class MessageDeleteItemEntryToServer extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageDeleteItemEntryToServer() { }
 
-	private ResourceLocation itemId;
+	private ItemId itemId;
 
-	public MessageDeleteItemEntryToServer(ResourceLocation itemId) {
+	public MessageDeleteItemEntryToServer(ItemId itemId) {
 		this.itemId = itemId;
 	}
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
-		itemId = new ResourceLocation(readString(buf));
+		itemId = ItemId.formByteBuf(buf);
 	}
 
 	@Override
 	public void toBytes(ByteBuf buf) {
-		writeString(buf, itemId.toString());
+		itemId.writeTo(buf);
 	}
 
 	@Override

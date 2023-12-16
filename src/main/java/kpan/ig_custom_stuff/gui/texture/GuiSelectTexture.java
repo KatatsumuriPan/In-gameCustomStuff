@@ -5,6 +5,8 @@ import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.gui.texture.GuiTextureList.EnumSelectedTextureList;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockTextureId;
+import kpan.ig_custom_stuff.resource.ids.ItemTextureId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -214,10 +216,10 @@ public class GuiSelectTexture extends GuiScreen implements IMyGuiScreen {
 				return DynamicResourceLoader.VANILLA_ITEM_TEXTURES;
 			}
 			case MOD_BLOCK -> {
-				return ClientCache.INSTANCE.blockTextureIds.keySet().stream().sorted().collect(Collectors.toList());
+				return ClientCache.INSTANCE.blockTextureIds.keySet().stream().map(BlockTextureId::toResourceLocation).sorted().collect(Collectors.toList());
 			}
 			case MOD_ITEM -> {
-				return ClientCache.INSTANCE.itemTextureIds.keySet().stream().sorted().collect(Collectors.toList());
+				return ClientCache.INSTANCE.itemTextureIds.keySet().stream().map(ItemTextureId::toResourceLocation).sorted().collect(Collectors.toList());
 			}
 			default -> throw new AssertionError();
 		}

@@ -2,10 +2,10 @@ package kpan.ig_custom_stuff.gui.item;
 
 import kpan.ig_custom_stuff.gui.MyGuiSlot;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -22,7 +22,7 @@ public class GuiItemList extends MyGuiSlot {
 
 	public void refreshList() {
 		listEntries.clear();
-		for (ResourceLocation id : MCRegistryUtil.getItemIds()) {
+		for (ItemId id : MCRegistryUtil.getItemIds()) {
 			listEntries.add(new Entry(id));
 		}
 	}
@@ -48,21 +48,21 @@ public class GuiItemList extends MyGuiSlot {
 
 
 	@Nullable
-	public ResourceLocation getSelectedItemId() {
+	public ItemId getSelectedItemId() {
 		return selectedIndex >= 0 ? getListEntry(selectedIndex).itemId : null;
 	}
 
 	public class Entry implements IGuiListEntry {
-		public final ResourceLocation itemId;
+		public final ItemId itemId;
 		public boolean isVisible = true;
-		public Entry(ResourceLocation itemId) {
+		public Entry(ItemId itemId) {
 			this.itemId = itemId;
 		}
 
 		@Override
 		public void drawEntry(int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY, boolean isSelected, float partialTicks) {
 			mc.fontRenderer.drawString(itemId.toString(), x + 16 + 3, y + 3, 0xFFFFFF);
-			Item item = Item.REGISTRY.getObject(itemId);
+			Item item = Item.REGISTRY.getObject(itemId.toResourceLocation());
 			if (item != null)
 				Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(new ItemStack(item, 1), x, y - 1);
 		}

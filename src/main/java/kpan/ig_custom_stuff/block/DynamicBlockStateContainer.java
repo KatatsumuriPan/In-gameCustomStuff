@@ -6,7 +6,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockDirectional;
 import net.minecraft.block.BlockHorizontal;
+import net.minecraft.block.BlockRotatedPillar;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -43,9 +45,10 @@ import java.util.Map.Entry;
 
 public class DynamicBlockStateContainer extends BlockStateContainer {
 	public static final PropertyInteger META = PropertyInteger.create("meta", 0, 15);
-	public static final PropertyDirection FACING = PropertyDirection.create("facing");
+	public static final PropertyDirection FACING = BlockDirectional.FACING;
 	public static final PropertyDirection HORIZONTAL = BlockHorizontal.FACING;
-	public static final PropertyEnum<Axis> XYZ_AXIS = PropertyEnum.create("axis", EnumFacing.Axis.class);
+	public static final PropertyEnum<Axis> XYZ_AXIS = BlockRotatedPillar.AXIS;
+	public static final PropertyEnum<EnumSlabType> SLAB = PropertyEnum.create("slab", EnumSlabType.class);
 
 	public DynamicBlockStateContainer(DynamicBlockBase blockIn) {
 		super(blockIn, META);
@@ -82,6 +85,14 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 			return Axis.Z;
 		else
 			return Axis.Y;
+	}
+	public static int getMetaFromSlab(EnumSlabType value) {
+		return value.ordinal();
+	}
+	public static EnumSlabType getSlabFromMeta(int meta) {
+		if (meta >= EnumSlabType.values().length)
+			return EnumSlabType.BOTTOM;
+		return EnumSlabType.values()[meta];
 	}
 
 	@SuppressWarnings("deprecation")
@@ -129,6 +140,9 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 				case XYZ -> {
 					return Collections.singletonList(XYZ_AXIS);
 				}
+				case SLAB -> {
+					return Collections.singletonList(SLAB);
+				}
 				default -> throw new AssertionError();
 			}
 		}
@@ -152,6 +166,10 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 					if (property == XYZ_AXIS)
 						return (T) getAxisFromMeta(meta);
 				}
+				case SLAB -> {
+					if (property == SLAB)
+						return (T) getSlabFromMeta(meta);
+				}
 				default -> throw new AssertionError();
 			}
 			return property.getAllowedValues().iterator().next();
@@ -174,6 +192,11 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 				case XYZ -> {
 					if (property == XYZ_AXIS) {
 						return owner.validStates.get(getMetaFromXYZ((EnumFacing.Axis) value));
+					}
+				}
+				case SLAB -> {
+					if (property == SLAB) {
+						return owner.validStates.get(getMetaFromSlab((EnumSlabType) value));
 					}
 				}
 				default -> throw new AssertionError();
@@ -200,6 +223,9 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 				}
 				case XYZ -> {
 					return ImmutableMap.of(XYZ_AXIS, getAxisFromMeta(meta));
+				}
+				case SLAB -> {
+					return ImmutableMap.of(SLAB, getSlabFromMeta(meta));
 				}
 				default -> throw new AssertionError();
 			}

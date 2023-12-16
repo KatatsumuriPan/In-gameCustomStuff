@@ -66,6 +66,9 @@ public class RenderUtil {
 		renderModel(x, y, scale, 225, 30, bakedModel);
 	}
 	public static void renderModel(int x, int y, float scale, float yaw, float pitch, IBakedModel bakedModel) {
+		renderModel(x, y, scale, yaw, pitch, 0, bakedModel);
+	}
+	public static void renderModel(int x, int y, float scale, float yaw, float pitch, int rotationX, IBakedModel bakedModel) {
 		RenderHelper.enableGUIStandardItemLighting();
 		TextureManager textureManager = Minecraft.getMinecraft().getTextureManager();
 		GlStateManager.pushMatrix();
@@ -84,6 +87,8 @@ public class RenderUtil {
 			GlStateManager.rotate(pitch, 1, 0, 0);
 		if (yaw != 0)
 			GlStateManager.rotate(yaw, 0, 1, 0);
+		if (rotationX != 0)
+			GlStateManager.rotate(-rotationX, 1, 0, 0);
 		GlStateManager.translate(-0.5F, -0.5F, -0.5F);
 		renderModel(bakedModel);
 		GlStateManager.disableAlpha();

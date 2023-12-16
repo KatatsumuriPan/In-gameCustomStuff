@@ -6,9 +6,9 @@ import kpan.ig_custom_stuff.network.MessageBase;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
@@ -21,9 +21,9 @@ public class MessageDeleteBlockModelsToClient extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageDeleteBlockModelsToClient() { }
 
-	private List<ResourceLocation> modelIds;
+	private List<BlockModelId> modelIds;
 
-	public MessageDeleteBlockModelsToClient(List<ResourceLocation> modelIds) {
+	public MessageDeleteBlockModelsToClient(List<BlockModelId> modelIds) {
 		this.modelIds = modelIds;
 	}
 
@@ -32,15 +32,15 @@ public class MessageDeleteBlockModelsToClient extends MessageBase {
 		int count = readVarInt(buf);
 		modelIds = new ArrayList<>();
 		for (int i = 0; i < count; i++) {
-			ResourceLocation id = new ResourceLocation(readString(buf));
+			BlockModelId id = BlockModelId.formByteBuf(buf);
 			modelIds.add(id);
 		}
 	}
 	@Override
 	public void toBytes(ByteBuf buf) {
 		writeVarInt(buf, modelIds.size());
-		for (ResourceLocation textureId : modelIds) {
-			writeString(buf, textureId.toString());
+		for (BlockModelId modelId : modelIds) {
+			modelId.writeTo(buf);
 		}
 	}
 
@@ -50,8 +50,8 @@ public class MessageDeleteBlockModelsToClient extends MessageBase {
 	}
 
 	private static class Client {
-		public static void saveAndLoad(List<ResourceLocation> modelIds) {
-			for (ResourceLocation modelId : modelIds) {
+		public static void saveAndLoad(List<BlockModelId> modelIds) {
+			for (BlockModelId modelId : modelIds) {
 				try {
 					ClientCache.INSTANCE.removeBlockModel(modelId);
 					SingleBlockModelLoader.remove(modelId);

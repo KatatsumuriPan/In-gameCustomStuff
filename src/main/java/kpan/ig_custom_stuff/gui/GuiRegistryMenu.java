@@ -34,7 +34,7 @@ public class GuiRegistryMenu extends GuiScreen implements IMyGuiScreen {
 		addButton(new GuiButton(4, width / 2 - 100, 160, 200, 20, I18n.format("gui.ingame_custom_stuff.registry_menu.button_label.texture")));
 		addButton(new GuiButton(0, width / 2 - 100, height - 28, 200, 20, I18n.format("gui.done")));
 
-		updateChunkLightBtn = addButton(new GuiButton(5, width - 140, 0, 140, 20, I18n.format("gui.ingame_custom_stuff.registry_menu.button_label.update_chunk_light")));
+		updateChunkLightBtn = addButton(new GuiButton(5, width - 150, 0, 150, 20, I18n.format("gui.ingame_custom_stuff.registry_menu.button_label.update_chunk_light")));
 		updateChunkLightBtn.enabled = false;
 	}
 

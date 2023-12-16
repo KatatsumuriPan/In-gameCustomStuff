@@ -10,11 +10,10 @@ import kpan.ig_custom_stuff.network.MessageBase;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
-import kpan.ig_custom_stuff.resource.IdConverter;
 import kpan.ig_custom_stuff.resource.RemovedResourcesResourcePack;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
@@ -60,10 +59,10 @@ public class MessageRegisterBlockEntryToClient extends MessageBase {
 	}
 
 	private static class Client {
-		public static void doAction(ResourceLocation blockId, BlockStateEntry blockStateEntry) throws IOException {
-			ClientCache.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockId), blockStateEntry.blockModelId);
+		public static void doAction(BlockId blockId, BlockStateEntry blockStateEntry) throws IOException {
+			ClientCache.INSTANCE.setItemBlockModel(blockId.toItemId().toModelId(), blockStateEntry);
 			RemovedResourcesResourcePack.INSTANCE.removeRemovedBlock(blockId);
-			DynamicResourceLoader.registerBlockStateMapper((DynamicBlockBase) MCRegistryUtil.BLOCK_REGISTRY.getValue(blockId));
+			DynamicResourceLoader.registerBlockStateMapper((DynamicBlockBase) MCRegistryUtil.BLOCK_REGISTRY.getValue(blockId.toResourceLocation()));
 			DynamicResourceLoader.loadBlockResources(blockId);
 			DynamicResourceLoader.reloadAllChunks();
 			GuiScreen screen = Minecraft.getMinecraft().currentScreen;

@@ -7,6 +7,8 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageDeleteTexturesToServer;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockTextureId;
+import kpan.ig_custom_stuff.resource.ids.ItemTextureId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -25,6 +27,7 @@ import org.lwjgl.input.Keyboard;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 @SideOnly(Side.CLIENT)
 public class GuiTextureMenu extends GuiScreen implements IMyGuiScreen {
@@ -96,13 +99,17 @@ public class GuiTextureMenu extends GuiScreen implements IMyGuiScreen {
 				case 1 -> mc.displayGuiScreen(GuiAddEditTexture.add(this, selectedTextureList == EnumSelectedTextureList.MOD_ITEM));
 				case 10 -> {
 					mc.displayGuiScreen(new GuiYesNo((result, id) -> {
-						if (result)
-							MyPacketHandler.sendToServer(new MessageDeleteTexturesToServer(Collections.singletonList(textureList.getSelectedTextureId())));
+						if (result) {
+							ResourceLocation textureId = textureList.getSelectedTextureId();
+							if (selectedTextureList == EnumSelectedTextureList.MOD_ITEM)
+								MyPacketHandler.sendToServer(new MessageDeleteTexturesToServer(Collections.singletonList(new ItemTextureId(textureId)), Collections.emptyList()));
+							else
+								MyPacketHandler.sendToServer(new MessageDeleteTexturesToServer(Collections.emptyList(), Collections.singletonList(new BlockTextureId(textureId))));
+						}
 						redisplay();
 					}, I18n.format("gui.ingame_custom_stuff.texture_menu.delete_texture", textureList.getSelectedTextureId()), I18n.format("gui.ingame_custom_stuff.warn.deleting_message"), 0));
 				}
-				case 11 ->
-						mc.displayGuiScreen(GuiAddEditTexture.edit(this, textureList.getSelectedTextureId().toString(), selectedTextureList == EnumSelectedTextureList.MOD_ITEM));
+				case 11 -> mc.displayGuiScreen(GuiAddEditTexture.edit(this, textureList.getSelectedTextureId(), selectedTextureList == EnumSelectedTextureList.MOD_ITEM));
 				case 20 -> {
 					selectedTextureList = EnumSelectedTextureList.NOT_SELECTED;
 					updateState();
@@ -188,10 +195,10 @@ public class GuiTextureMenu extends GuiScreen implements IMyGuiScreen {
 				return DynamicResourceLoader.VANILLA_ITEM_TEXTURES;
 			}
 			case MOD_BLOCK -> {
-				return ClientCache.INSTANCE.blockTextureIds.keySet();
+				return ClientCache.INSTANCE.blockTextureIds.keySet().stream().map(BlockTextureId::toResourceLocation).collect(Collectors.toList());
 			}
 			case MOD_ITEM -> {
-				return ClientCache.INSTANCE.itemTextureIds.keySet();
+				return ClientCache.INSTANCE.itemTextureIds.keySet().stream().map(ItemTextureId::toResourceLocation).collect(Collectors.toList());
 			}
 			default -> throw new AssertionError();
 		}

@@ -46,7 +46,7 @@ public class GuiEditBlockProperty extends GuiScreen implements IMyGuiScreen {
 		addButton(new GuiButton(1, width / 2 + 5, height - 28, 150, 20, I18n.format("gui.cancel")));
 
 
-		guiList = new MyGuiList(this, mc, width, height - 70, 30);
+		guiList = new MyGuiList(this, mc, width, height, 30, height - 30);
 		guiList.addFloatButton("gui.ingame_custom_stuff.edit_block_property.hardness", builder.hardness, 0, Float.POSITIVE_INFINITY, builder::setHardness);
 		guiList.addFloatButton("gui.ingame_custom_stuff.edit_block_property.resistance", builder.resistance, 0, Float.POSITIVE_INFINITY, builder::setResistance);
 		guiList.addValuesButton("gui.ingame_custom_stuff.edit_block_property.soundType", builder.soundType, BlockPropertyEntry::getTranslationKey, BlockPropertyEntry.VANILLA_SOUND_TYPE_LIST, builder::setSoundType);

@@ -4,6 +4,8 @@ import kpan.ig_custom_stuff.ModMain;
 import kpan.ig_custom_stuff.block.BlockEntry;
 import kpan.ig_custom_stuff.item.ItemEntry;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import kpan.ig_custom_stuff.util.MyReflectionHelper;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
@@ -28,22 +30,22 @@ public class HK_GameData {
 			//localWorldの読み込みである
 			if (name.equals(GameData.ITEMS)) {
 				ForgeRegistry<Item> ITEM_REGISTRY = RegistryManager.ACTIVE.getRegistry(GameData.ITEMS);
-				for (ResourceLocation itemId : MCRegistryUtil.getItemIds()) {
-					if (!newRegistry.containsKey(itemId)) {
-						MyReflectionHelper.invokePrivateMethod(newRegistry, "add", new Class[]{int.class, IForgeRegistryEntry.class}, new Object[]{ITEM_REGISTRY.getID(itemId), ITEM_REGISTRY.getValue(itemId)});
+				for (ItemId itemId : MCRegistryUtil.getItemIds()) {
+					if (!newRegistry.containsKey(itemId.toResourceLocation())) {
+						MyReflectionHelper.invokePrivateMethod(newRegistry, "add", new Class[]{int.class, IForgeRegistryEntry.class}, new Object[]{ITEM_REGISTRY.getID(itemId.toResourceLocation()), ITEM_REGISTRY.getValue(itemId.toResourceLocation())});
 					}
 				}
-				for (ResourceLocation blockId : MCRegistryUtil.getBlockIds()) {
-					if (!newRegistry.containsKey(blockId)) {
-						MyReflectionHelper.invokePrivateMethod(newRegistry, "add", new Class[]{int.class, IForgeRegistryEntry.class}, new Object[]{ITEM_REGISTRY.getID(blockId), ITEM_REGISTRY.getValue(blockId)});
+				for (BlockId blockId : MCRegistryUtil.getBlockIds()) {
+					if (!newRegistry.containsKey(blockId.toResourceLocation())) {
+						MyReflectionHelper.invokePrivateMethod(newRegistry, "add", new Class[]{int.class, IForgeRegistryEntry.class}, new Object[]{ITEM_REGISTRY.getID(blockId.toResourceLocation()), ITEM_REGISTRY.getValue(blockId.toResourceLocation())});
 					}
 				}
 			}
 			if (name.equals(GameData.BLOCKS)) {
 				ForgeRegistry<Block> BLOCK_REGISTRY = RegistryManager.ACTIVE.getRegistry(GameData.BLOCKS);
-				for (ResourceLocation blockId : MCRegistryUtil.getBlockIds()) {
-					if (!newRegistry.containsKey(blockId)) {
-						MyReflectionHelper.invokePrivateMethod(newRegistry, "add", new Class[]{int.class, IForgeRegistryEntry.class}, new Object[]{BLOCK_REGISTRY.getID(blockId), BLOCK_REGISTRY.getValue(blockId)});
+				for (BlockId blockId : MCRegistryUtil.getBlockIds()) {
+					if (!newRegistry.containsKey(blockId.toResourceLocation())) {
+						MyReflectionHelper.invokePrivateMethod(newRegistry, "add", new Class[]{int.class, IForgeRegistryEntry.class}, new Object[]{BLOCK_REGISTRY.getID(blockId.toResourceLocation()), BLOCK_REGISTRY.getValue(blockId.toResourceLocation())});
 					}
 				}
 			}

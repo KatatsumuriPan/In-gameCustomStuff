@@ -10,9 +10,9 @@ import kpan.ig_custom_stuff.network.MessageUtil;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.server.MessageRegisterItemEntryToClient;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -50,12 +50,12 @@ public class MessageRegisterItemEntryToServer extends MessageBase {
 	public void doAction(MessageContext ctx) {
 		EntityPlayerMP sender = ctx.getServerHandler().player;
 		MinecraftServer server = sender.server;
-		ResourceLocation itemId = itemEntry.itemId;
+		ItemId itemId = itemEntry.itemId;
 		if (MCRegistryUtil.getItemIdErrorMessage(itemId) != null) {
 			ModMain.LOGGER.info("INVALID PACKET:itemId \"" + itemId + "\" is invalid(" + MCRegistryUtil.getItemIdErrorMessage(itemId) + ")");
 			if (MCRegistryUtil.isItemRegistered(itemId))
 				sender.sendMessage(new TextComponentTranslation("registry_message.item.error.already_exists", itemId));
-			else if (MCRegistryUtil.isRemovedBlock(itemId))
+			else if (MCRegistryUtil.isRemovedBlock(itemId.toBlockId()))
 				sender.sendMessage(new TextComponentTranslation("registry_message.item.error.need_relaunch", itemId));
 			return;
 		}

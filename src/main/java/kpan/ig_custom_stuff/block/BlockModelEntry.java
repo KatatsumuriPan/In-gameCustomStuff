@@ -12,6 +12,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.resource.JsonUtil;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId.BlockModelGroupType;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.EnumFacing;
@@ -21,12 +22,20 @@ import net.minecraft.util.JsonUtils;
 import net.minecraft.util.ResourceLocation;
 
 import javax.vecmath.Vector3f;
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
 public class BlockModelEntry {
+
+	public static final String VARIANT_MARKER = "-";
 
 	public static BlockModelEntry fromByteBuf(ByteBuf buf) {
 		ModelType modelType = MyByteBufUtil.readEnum(buf, ModelType.class);
@@ -47,6 +56,10 @@ public class BlockModelEntry {
 		return Serializer.GSON.fromJson(json, BlockModelEntry.class);
 	}
 
+	public static BlockModelEntry slabFromJson(String jsonDouble, String jsonTop, String jsonBottom) {
+		return Serializer.GSON.fromJson(jsonDouble, BlockModelEntry.class);
+	}
+
 	public final ModelType modelType;
 	public final BlockModelFaceEntry[] faces;
 	public final Map<String, ResourceLocation> textureIds;
@@ -57,6 +70,10 @@ public class BlockModelEntry {
 		this.textureIds = textureIds;
 		if (faces.length != 6)
 			throw new IllegalArgumentException("The length of faces must be 6!");
+	}
+
+	public boolean isCage() {
+		return modelType == ModelType.CAGE;
 	}
 
 	public void writeTo(ByteBuf buf) {
@@ -71,8 +88,18 @@ public class BlockModelEntry {
 		}
 	}
 
-	public String toJson() {
+	public String toJsonNormal() {
+		return toJson();
+	}
+	private String toJson() {
 		return Serializer.GSON.toJson(this);
+	}
+
+	public void saveToFiles(Path blockModelFilePath) throws IOException {
+		Files.write(Paths.get(blockModelFilePath + ".json"), toJson().getBytes(StandardCharsets.UTF_8));
+	}
+	public void deleteFiles(Path blockModelFilePath) throws IOException {
+		Files.delete(Paths.get(blockModelFilePath + ".json"));
 	}
 
 	public String getString() {
@@ -82,7 +109,33 @@ public class BlockModelEntry {
 	public enum ModelType {
 		NORMAL,
 		CAGE,
-		;
+		SLAB_DOUBLE,
+		SLAB_TOP,
+		SLAB_BOTTOM,
+		/*
+		追加されうるもの
+		normal
+		slab
+		縦slab
+		stair
+		fence
+		fence-gate
+		wall
+		pressure-plate
+		button
+		sign
+		trap-door
+		rail
+		plant
+		plant-double
+		glass-pane
+		coral-fan
+		ladder
+		floating-leave
+		carpet
+		torch
+		door
+		 */;
 		public static ModelType getFromName(String name) {
 			for (ModelType value : values()) {
 				if (value.name().equalsIgnoreCase(name))
@@ -92,11 +145,26 @@ public class BlockModelEntry {
 		}
 		public String getString() {
 			switch (this) {
-				case NORMAL -> {
-					return I18n.format("ingame_custom_stuff.block_model.normal");
+				case NORMAL, CAGE -> {
+					return I18n.format("ingame_custom_stuff.block_model." + name().toLowerCase(Locale.ROOT));
 				}
-				case CAGE -> {
-					return I18n.format("ingame_custom_stuff.block_model.cage");
+				case SLAB_DOUBLE, SLAB_TOP, SLAB_BOTTOM -> {
+					return I18n.format("ingame_custom_stuff.block_model.slab");
+				}
+				default -> throw new AssertionError();
+			}
+		}
+		public boolean isSpecial() {
+			return this != NORMAL && this != CAGE;
+		}
+
+		public BlockModelGroupType toBlockModelGroupType() {
+			switch (this) {
+				case NORMAL, CAGE -> {
+					return BlockModelGroupType.NORMAL;
+				}
+				case SLAB_DOUBLE, SLAB_TOP, SLAB_BOTTOM -> {
+					return BlockModelGroupType.SLAB;
 				}
 				default -> throw new AssertionError();
 			}
@@ -137,7 +205,7 @@ public class BlockModelEntry {
 							}
 							for (int i = 0; i < EnumFacing.VALUES.length; i++) {
 								EnumFacing face = EnumFacing.VALUES[i];
-								faces1[i] = new BlockModelFaceEntry(face.getName2(), TextureUV.DEFAULT, 0, face);
+								faces1[i] = new BlockModelFaceEntry(face.getName2(), TextureUV.FULL, 0, face);
 							}
 						}
 						case "block/block" -> {
@@ -193,6 +261,109 @@ public class BlockModelEntry {
 //							throw new JsonParseException("to is not [16, 16, 16]:" + to);
 						JsonObject faces = JsonUtils.getJsonObject(element, "faces");
 						faces1[face.getIndex()] = BlockModelFaceEntry.deserialize(JsonUtils.getJsonObject(faces, face.getName2()), from, to, face);
+					}
+
+					return new BlockModelEntry(type, faces1, textureIds);
+				}
+				case SLAB_DOUBLE -> {
+					BlockModelFaceEntry[] faces1 = new BlockModelFaceEntry[6];
+					Map<String, ResourceLocation> textureIds = new HashMap<>();
+					switch (parent) {
+						case "block/cube" -> {
+							if (jsonObject.has("elements")) {
+								throw new JsonParseException("block/cube with elements is not supported yet.");
+							} else {
+								//texturesのみ
+								JsonObject textures = JsonUtils.getJsonObject(jsonObject, "textures");
+								for (Entry<String, JsonElement> entry : textures.entrySet()) {
+									textureIds.put(entry.getKey(), new ResourceLocation(entry.getValue().getAsString()));
+								}
+							}
+							for (int i = 0; i < EnumFacing.VALUES.length; i++) {
+								EnumFacing face = EnumFacing.VALUES[i];
+								faces1[i] = new BlockModelFaceEntry(face.getName2(), TextureUV.FULL, 0, face);
+							}
+						}
+						case "block/block" -> {
+							JsonObject textures = JsonUtils.getJsonObject(jsonObject, "textures");
+							for (Entry<String, JsonElement> entry : textures.entrySet()) {
+								textureIds.put(entry.getKey(), new ResourceLocation(entry.getValue().getAsString()));
+							}
+
+							JsonArray elements = JsonUtils.getJsonArray(jsonObject, "elements");
+							if (elements.size() != 1)
+								throw new JsonParseException("elements size is not 1:" + elements.size());
+							JsonObject element = elements.get(0).getAsJsonObject();
+							Vector3f from = JsonUtil.parsePosition(element, "from");
+//					if (vector3f.x >= -16.0F && vector3f.y >= -16.0F && vector3f.z >= -16.0F && vector3f.x <= 32.0F && vector3f.y <= 32.0F && vector3f.z <= 32.0F)
+							if (from.x != 0 || from.y != 0 || from.z != 0)
+								throw new JsonParseException("from is not [0, 0, 0]:" + from);
+							Vector3f to = JsonUtil.parsePosition(element, "to");
+							if (to.x != 16 || to.y != 16 || to.z != 16)
+								throw new JsonParseException("to is not [16, 16, 16]:" + to);
+							JsonObject faces = JsonUtils.getJsonObject(element, "faces");
+							for (int i = 0; i < EnumFacing.VALUES.length; i++) {
+								EnumFacing face = EnumFacing.VALUES[i];
+								faces1[i] = BlockModelFaceEntry.deserialize(JsonUtils.getJsonObject(faces, face.getName2()), from, to, face);
+							}
+						}
+						default -> throw new JsonParseException("invalid parent:" + parent);
+					}
+
+					return new BlockModelEntry(type, faces1, textureIds);
+				}
+				case SLAB_TOP -> {
+					BlockModelFaceEntry[] faces1 = new BlockModelFaceEntry[6];
+					Map<String, ResourceLocation> textureIds = new HashMap<>();
+					if (!parent.equals("block/block"))
+						throw new JsonParseException("invalid parent:" + parent);
+					JsonObject textures = JsonUtils.getJsonObject(jsonObject, "textures");
+					for (Entry<String, JsonElement> entry : textures.entrySet()) {
+						textureIds.put(entry.getKey(), new ResourceLocation(entry.getValue().getAsString()));
+					}
+
+					JsonArray elements = JsonUtils.getJsonArray(jsonObject, "elements");
+					if (elements.size() != 1)
+						throw new JsonParseException("elements size is not 1:" + elements.size());
+					JsonObject element = elements.get(0).getAsJsonObject();
+					Vector3f from = JsonUtil.parsePosition(element, "from");
+					if (from.x != 0 || from.y != 8 || from.z != 0)
+						throw new JsonParseException("from is not [0, 8, 0]:" + from);
+					Vector3f to = JsonUtil.parsePosition(element, "to");
+					if (to.x != 16 || to.y != 16 || to.z != 16)
+						throw new JsonParseException("to is not [16, 16, 16]:" + to);
+					JsonObject faces = JsonUtils.getJsonObject(element, "faces");
+					for (int i = 0; i < EnumFacing.VALUES.length; i++) {
+						EnumFacing face = EnumFacing.VALUES[i];
+						faces1[i] = BlockModelFaceEntry.deserialize(JsonUtils.getJsonObject(faces, face.getName2()), from, to, face);
+					}
+
+					return new BlockModelEntry(type, faces1, textureIds);
+				}
+				case SLAB_BOTTOM -> {
+					BlockModelFaceEntry[] faces1 = new BlockModelFaceEntry[6];
+					Map<String, ResourceLocation> textureIds = new HashMap<>();
+					if (!parent.equals("block/block"))
+						throw new JsonParseException("invalid parent:" + parent);
+					JsonObject textures = JsonUtils.getJsonObject(jsonObject, "textures");
+					for (Entry<String, JsonElement> entry : textures.entrySet()) {
+						textureIds.put(entry.getKey(), new ResourceLocation(entry.getValue().getAsString()));
+					}
+
+					JsonArray elements = JsonUtils.getJsonArray(jsonObject, "elements");
+					if (elements.size() != 1)
+						throw new JsonParseException("elements size is not 1:" + elements.size());
+					JsonObject element = elements.get(0).getAsJsonObject();
+					Vector3f from = JsonUtil.parsePosition(element, "from");
+					if (from.x != 0 || from.y != 0 || from.z != 0)
+						throw new JsonParseException("from is not [0, 8, 0]:" + from);
+					Vector3f to = JsonUtil.parsePosition(element, "to");
+					if (to.x != 16 || to.y != 8 || to.z != 16)
+						throw new JsonParseException("to is not [16, 16, 16]:" + to);
+					JsonObject faces = JsonUtils.getJsonObject(element, "faces");
+					for (int i = 0; i < EnumFacing.VALUES.length; i++) {
+						EnumFacing face = EnumFacing.VALUES[i];
+						faces1[i] = BlockModelFaceEntry.deserialize(JsonUtils.getJsonObject(faces, face.getName2()), from, to, face);
 					}
 
 					return new BlockModelEntry(type, faces1, textureIds);
@@ -350,6 +521,128 @@ public class BlockModelEntry {
 								}
 								elements.add(element);
 							}
+						}
+						jsonobject.add("elements", elements);
+					}
+				}
+				case SLAB_DOUBLE -> {
+					jsonobject.addProperty("parent", "block/block");
+					{
+						JsonObject textures = new JsonObject();
+						for (Entry<String, ResourceLocation> entry : object.textureIds.entrySet()) {
+							textures.addProperty(entry.getKey().replace("#", ""), entry.getValue().toString());
+						}
+						jsonobject.add("textures", textures);
+					}
+					{
+						JsonArray elements = new JsonArray();
+						{
+							JsonObject element = new JsonObject();
+							{
+								JsonArray from = new JsonArray();
+								from.add(0);
+								from.add(0);
+								from.add(0);
+								element.add("from", from);
+							}
+							{
+								JsonArray to = new JsonArray();
+								to.add(16);
+								to.add(16);
+								to.add(16);
+								element.add("to", to);
+							}
+							{
+								JsonObject faces = new JsonObject();
+								for (int i = 0; i < object.faces.length; i++) {
+									EnumFacing face = EnumFacing.byIndex(i);
+									faces.add(face.getName2(), object.faces[i].serialize());
+								}
+								element.add("faces", faces);
+							}
+							elements.add(element);
+						}
+						jsonobject.add("elements", elements);
+					}
+				}
+				case SLAB_TOP -> {
+					jsonobject.addProperty("ics_block_model_type", object.modelType.toString().toLowerCase(Locale.ROOT));
+					jsonobject.addProperty("parent", "block/block");
+					{
+						JsonObject textures = new JsonObject();
+						for (Entry<String, ResourceLocation> entry : object.textureIds.entrySet()) {
+							textures.addProperty(entry.getKey().replace("#", ""), entry.getValue().toString());
+						}
+						jsonobject.add("textures", textures);
+					}
+					{
+						JsonArray elements = new JsonArray();
+						{
+							JsonObject element = new JsonObject();
+							{
+								JsonArray from = new JsonArray();
+								from.add(0);
+								from.add(8);
+								from.add(0);
+								element.add("from", from);
+							}
+							{
+								JsonArray to = new JsonArray();
+								to.add(16);
+								to.add(16);
+								to.add(16);
+								element.add("to", to);
+							}
+							{
+								JsonObject faces = new JsonObject();
+								for (int i = 0; i < object.faces.length; i++) {
+									EnumFacing face = EnumFacing.byIndex(i);
+									faces.add(face.getName2(), object.faces[i].serialize());
+								}
+								element.add("faces", faces);
+							}
+							elements.add(element);
+						}
+						jsonobject.add("elements", elements);
+					}
+				}
+				case SLAB_BOTTOM -> {
+					jsonobject.addProperty("ics_block_model_type", object.modelType.toString().toLowerCase(Locale.ROOT));
+					jsonobject.addProperty("parent", "block/block");
+					{
+						JsonObject textures = new JsonObject();
+						for (Entry<String, ResourceLocation> entry : object.textureIds.entrySet()) {
+							textures.addProperty(entry.getKey().replace("#", ""), entry.getValue().toString());
+						}
+						jsonobject.add("textures", textures);
+					}
+					{
+						JsonArray elements = new JsonArray();
+						{
+							JsonObject element = new JsonObject();
+							{
+								JsonArray from = new JsonArray();
+								from.add(0);
+								from.add(0);
+								from.add(0);
+								element.add("from", from);
+							}
+							{
+								JsonArray to = new JsonArray();
+								to.add(16);
+								to.add(8);
+								to.add(16);
+								element.add("to", to);
+							}
+							{
+								JsonObject faces = new JsonObject();
+								for (int i = 0; i < object.faces.length; i++) {
+									EnumFacing face = EnumFacing.byIndex(i);
+									faces.add(face.getName2(), object.faces[i].serialize());
+								}
+								element.add("faces", faces);
+							}
+							elements.add(element);
 						}
 						jsonobject.add("elements", elements);
 					}

@@ -14,10 +14,10 @@ import kpan.ig_custom_stuff.block.BlockEntry.BlockEntryJson.BlockType;
 import kpan.ig_custom_stuff.block.BlockStateEntry.BlockStateType;
 import kpan.ig_custom_stuff.registry.DynamicServerRegistryManager;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
 import net.minecraft.util.EnumTypeAdapterFactory;
 import net.minecraft.util.JsonUtils;
-import net.minecraft.util.ResourceLocation;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -25,24 +25,24 @@ import java.lang.reflect.Type;
 public class BlockEntry {
 
 	public static BlockEntry fromByteBuf(ByteBuf buf) {
-		var itemId = new ResourceLocation(MyByteBufUtil.readString(buf));
+		var blockId = BlockId.formByteBuf(buf);
 		BlockStateType blockStateType = MyByteBufUtil.readEnum(buf, BlockStateType.class);
 		var option = BlockPropertyEntry.fromByteBuf(buf);
-		return new BlockEntry(itemId, blockStateType, option);
+		return new BlockEntry(blockId, blockStateType, option);
 	}
 
-	public final ResourceLocation blockId;
+	public final BlockId blockId;
 	public final BlockStateType blockStateType;
 	public final BlockPropertyEntry basicProperty;
 
-	public BlockEntry(ResourceLocation blockId, BlockStateType blockStateType, BlockPropertyEntry basicProperty) {
+	public BlockEntry(BlockId blockId, BlockStateType blockStateType, BlockPropertyEntry basicProperty) {
 		this.blockId = blockId;
 		this.blockStateType = blockStateType;
 		this.basicProperty = basicProperty;
 	}
 
 	public void writeTo(ByteBuf buf) {
-		MyByteBufUtil.writeString(buf, blockId.toString());
+		blockId.writeTo(buf);
 		MyByteBufUtil.writeEnum(buf, blockStateType);
 		basicProperty.writeTo(buf);
 	}

@@ -1,15 +1,15 @@
 package kpan.ig_custom_stuff.item;
 
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import kpan.ig_custom_stuff.util.MyReflectionHelper;
 import net.minecraft.item.Item;
-import net.minecraft.util.ResourceLocation;
 
 public class DynamicItemBase extends Item {
 
-	public DynamicItemBase(ResourceLocation itemId, ItemPropertyEntry itemPropertyEntry) {
+	public DynamicItemBase(ItemId itemId, ItemPropertyEntry itemPropertyEntry) {
 
-		setTranslationKey(itemId.getNamespace() + "." + itemId.getPath());
-		MyReflectionHelper.setPrivateField(Impl.class, this, "registryName", itemId);
+		setTranslationKey(itemId.namespace + "." + itemId.name);
+		MyReflectionHelper.setPrivateField(Impl.class, this, "registryName", itemId.toResourceLocation());
 		//setHasSubtypes(true)/*ダメージ値等で複数の種類のアイテムを分けているかどうか。デフォルトfalse*/
 		//setMaxDamage(256)/*耐久値の設定。デフォルト0*/
 		//setFull3D()/*3D表示で描画させる。ツールや骨、棒等。*/

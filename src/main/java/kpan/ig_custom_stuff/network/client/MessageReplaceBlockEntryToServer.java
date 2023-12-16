@@ -11,10 +11,9 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.server.MessageReplaceBlockEntryToClient;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
-import kpan.ig_custom_stuff.resource.IdConverter;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -52,7 +51,7 @@ public class MessageReplaceBlockEntryToServer extends MessageBase {
 	public void doAction(MessageContext ctx) {
 		EntityPlayerMP sender = ctx.getServerHandler().player;
 		MinecraftServer server = sender.server;
-		ResourceLocation blockId = blockEntry.blockId;
+		BlockId blockId = blockEntry.blockId;
 		if (!MCRegistryUtil.isBlockRegistered(blockId)) {
 			if (MCRegistryUtil.getBlockIdErrorMessage(blockId) != null)
 				ModMain.LOGGER.info("INVALID PACKET:blockId \"" + blockId + "\" is invalid(" + MCRegistryUtil.getBlockIdErrorMessage(blockId) + ")");
@@ -102,12 +101,12 @@ public class MessageReplaceBlockEntryToServer extends MessageBase {
 			}
 		}
 		try {
-			Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockModelId);
+			Server.INSTANCE.setItemBlockModel(blockId.toItemId().toModelId(), blockStateEntry);
 		} catch (IOException e) {
 			try {
 				ModMain.LOGGER.error("Failed to save an item block model file", e);
 				ModMain.LOGGER.error("Trying again...");
-				Server.INSTANCE.setItemBlockModel(IdConverter.blockId2ItemModelId(blockEntry.blockId), blockStateEntry.blockModelId);
+				Server.INSTANCE.setItemBlockModel(blockId.toItemId().toModelId(), blockStateEntry);
 			} catch (IOException e2) {
 				ModMain.LOGGER.error("Failed to save an item block model file", e2);
 				TextComponentTranslation component = new TextComponentTranslation("registry_message.block.error.io.update.item_block_model", blockId);

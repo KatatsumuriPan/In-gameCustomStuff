@@ -8,6 +8,7 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageDeleteItemEntryToServer;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -17,7 +18,6 @@ import net.minecraft.client.gui.GuiYesNo;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.StringUtils;
@@ -91,7 +91,7 @@ public class GuiItemMenu extends GuiScreen implements IMyGuiScreen {
 					}, I18n.format("gui.ingame_custom_stuff.item_menu.delete_item", itemList.getSelectedItemId()), I18n.format("gui.ingame_custom_stuff.warn.deleting_message"), 0));
 				}
 				case 11 -> {
-					ResourceLocation itemId = itemList.getSelectedItemId();
+					ItemId itemId = itemList.getSelectedItemId();
 					ItemEntry itemEntry = MCRegistryUtil.getItem(itemId);
 					if (itemEntry == null)
 						throw new IllegalStateException();
@@ -113,9 +113,9 @@ public class GuiItemMenu extends GuiScreen implements IMyGuiScreen {
 		int l = infoLeft + ((infoWidth - w) / 2);
 		Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
 		Gui.drawRect(l, 0, l + w, w, -1);
-		ResourceLocation itemId = itemList.getSelectedItemId();
+		ItemId itemId = itemList.getSelectedItemId();
 		if (itemId != null) {
-			Item item = Item.REGISTRY.getObject(itemId);
+			Item item = Item.REGISTRY.getObject(itemId.toResourceLocation());
 			if (item != null)
 				RenderUtil.renderItemIntoGUI(new ItemStack(item, 1), l, 0, w / 16f);
 			String usName = ClientCache.INSTANCE.getItemNameLang("en_us", itemId);

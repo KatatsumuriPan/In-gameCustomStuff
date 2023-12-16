@@ -5,8 +5,8 @@ import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
-import net.minecraft.util.ResourceLocation;
 
 import java.io.IOException;
 
@@ -34,23 +34,23 @@ public class BlockLangEntry {
 		MyByteBufUtil.writeString(buf, usName);
 	}
 
-	public void register(ResourceLocation blockId, boolean isRemote) throws IOException {
+	public void register(BlockId blockId, boolean isRemote) throws IOException {
 		String translateKey = DynamicResourceManager.toTranslationKeyBlock(blockId);
 		if (isRemote) {
-			ClientCache.INSTANCE.addLang(blockId.getNamespace(), "en_us", translateKey, usName);
+			ClientCache.INSTANCE.addLang(blockId.namespace, "en_us", translateKey, usName);
 			DynamicResourceLoader.putLang(translateKey, usName);
 		} else {
-			Server.INSTANCE.addLang(blockId.getNamespace(), "en_us", translateKey, usName);
+			Server.INSTANCE.addLang(blockId.namespace, "en_us", translateKey, usName);
 		}
 	}
 
-	public void update(ResourceLocation blockId, boolean isRemote) throws IOException {
+	public void update(BlockId blockId, boolean isRemote) throws IOException {
 		String translateKey = DynamicResourceManager.toTranslationKeyBlock(blockId);
 		if (isRemote) {
-			ClientCache.INSTANCE.addLang(blockId.getNamespace(), "en_us", translateKey, usName);
+			ClientCache.INSTANCE.addLang(blockId.namespace, "en_us", translateKey, usName);
 			DynamicResourceLoader.putLang(translateKey, usName);
 		} else {
-			Server.INSTANCE.addLang(blockId.getNamespace(), "en_us", translateKey, usName);
+			Server.INSTANCE.addLang(blockId.namespace, "en_us", translateKey, usName);
 		}
 	}
 

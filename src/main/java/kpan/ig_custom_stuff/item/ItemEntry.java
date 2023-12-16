@@ -13,10 +13,9 @@ import io.netty.buffer.ByteBuf;
 import kpan.ig_custom_stuff.item.ItemEntry.ItemEntryJson.ItemType;
 import kpan.ig_custom_stuff.registry.DynamicServerRegistryManager;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
-import kpan.ig_custom_stuff.util.MyByteBufUtil;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.util.EnumTypeAdapterFactory;
 import net.minecraft.util.JsonUtils;
-import net.minecraft.util.ResourceLocation;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -24,21 +23,21 @@ import java.lang.reflect.Type;
 public class ItemEntry {
 
 	public static ItemEntry fromByteBuf(ByteBuf buf) {
-		var itemId = new ResourceLocation(MyByteBufUtil.readString(buf));
+		var itemId = ItemId.formByteBuf(buf);
 		var propertyEntry = ItemPropertyEntry.fromByteBuf(buf);
 		return new ItemEntry(itemId, propertyEntry);
 	}
 
-	public final ResourceLocation itemId;
+	public final ItemId itemId;
 	public final ItemPropertyEntry propertyEntry;
 
-	public ItemEntry(ResourceLocation itemId, ItemPropertyEntry propertyEntry) {
+	public ItemEntry(ItemId itemId, ItemPropertyEntry propertyEntry) {
 		this.itemId = itemId;
 		this.propertyEntry = propertyEntry;
 	}
 
 	public void writeTo(ByteBuf buf) {
-		MyByteBufUtil.writeString(buf, itemId.toString());
+		itemId.writeTo(buf);
 		propertyEntry.writeTo(buf);
 	}
 

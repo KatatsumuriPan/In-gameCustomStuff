@@ -13,6 +13,11 @@ import kpan.ig_custom_stuff.block.DynamicBlockBase;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
 import kpan.ig_custom_stuff.resource.StitchManager.StitchFullSpaceException;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
+import kpan.ig_custom_stuff.resource.ids.ITextureId;
+import kpan.ig_custom_stuff.resource.ids.ItemId;
+import kpan.ig_custom_stuff.resource.ids.ItemModelId;
 import kpan.ig_custom_stuff.util.MyReflectionHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -60,10 +65,10 @@ import java.util.stream.Collectors;
 
 public class DynamicResourceLoader {
 
-	public static final Map<ResourceLocation, TextureAtlasSprite> unregisteredTextureCache = new HashMap<>();
-	public static final Multimap<ResourceLocation, ResourceLocation> itemModelTextureDependencies = HashMultimap.create();//textureId2itemModelId
-	public static final Multimap<ResourceLocation, ResourceLocation> blockModelTextureDependencies = HashMultimap.create();//textureId2blockModelId
-	public static final Multimap<ResourceLocation, ResourceLocation> blockModelDependencies = HashMultimap.create();//modelId2blockId
+	public static final Map<ITextureId, TextureAtlasSprite> unregisteredTextureCache = new HashMap<>();
+	public static final Multimap<ResourceLocation, ItemModelId> itemModelTextureDependencies = HashMultimap.create();//textureId2itemModelId
+	public static final Multimap<ResourceLocation, BlockModelId> blockModelTextureDependencies = HashMultimap.create();//textureId2blockModelId
+	public static final Multimap<BlockModelId, BlockId> blockModelDependencies = HashMultimap.create();//modelId2blockId
 	public static final ICustomModelLoader vanillaLoaderInstance;
 	private static final Function<ResourceLocation, TextureAtlasSprite> DefaultTextureGetter_INSTANCE;
 	public static final List<ResourceLocation> VANILLA_BLOCK_TEXTURES = new ArrayList<>();//textureId
@@ -87,7 +92,10 @@ public class DynamicResourceLoader {
 	}
 
 	public static void loadItemModels(DynamicResourceManager instance) {
-		loadItemModels(instance.itemModelIds.keySet().stream().map(IdConverter::itemModelId2itemModelName).collect(Collectors.toList()));
+		loadItemModels(instance.itemModelIds.keySet().stream().map(ItemModelId::toItemModelName).collect(Collectors.toList()));
+	}
+	public static void loadItemModels(Collection<ItemId> itemIds) {
+		loadItemModels(itemIds.stream().map(ItemId::toItemModelName).collect(Collectors.toList()));
 	}
 	public static void loadItemModels(Iterable<ResourceLocation> itemModelNames) {
 		loadVariantModels(stateModels ->
@@ -120,8 +128,8 @@ public class DynamicResourceLoader {
 			}
 		});
 	}
-	public static void loadBlockModel(ResourceLocation blockId) {
-		Block block = Block.REGISTRY.getObject(blockId);
+	public static void loadBlockModel(BlockId blockId) {
+		Block block = Block.REGISTRY.getObject(blockId.toResourceLocation());
 		if (block instanceof DynamicBlockBase)
 			loadBlockModel((DynamicBlockBase) block);
 	}
@@ -153,38 +161,38 @@ public class DynamicResourceLoader {
 			bakedModelStore.put(entry.getKey(), modelManager.getModel(entry.getValue()));
 		}
 	}
-	public static void addBlockModelDependency(ResourceLocation blockId, Collection<ResourceLocation> modelIds) {
+	public static void addBlockModelDependency(BlockId blockId, Collection<ResourceLocation> modelIds) {
 		for (ResourceLocation modelId : modelIds) {
 			if (modelId.getNamespace().equals("minecraft"))
 				continue;
-			blockModelDependencies.put(modelId, blockId);
+			blockModelDependencies.put(new BlockModelId(modelId), blockId);
 		}
 	}
-	public static void reloadBlockModelDependants(ResourceLocation modelId) {
-		Collection<ResourceLocation> blockIds = blockModelDependencies.get(modelId);
+	public static void reloadBlockModelDependants(BlockModelId modelId) {
+		Collection<BlockId> blockIds = blockModelDependencies.get(modelId);
 		if (!blockIds.isEmpty()) {
-			for (ResourceLocation blockId : blockIds) {
+			for (BlockId blockId : blockIds) {
 				loadBlockResources(blockId);
 			}
-			DynamicResourceLoader.loadItemModels(blockIds);
-			for (ResourceLocation blockId : blockIds) {
-				reloadItemModelMesh(blockId);
+			DynamicResourceLoader.loadItemModels(blockIds.stream().map(BlockId::toItemId).collect(Collectors.toList()));
+			for (BlockId blockId : blockIds) {
+				reloadItemModelMesh(blockId.toItemId());
 			}
 		}
 		SingleBlockModelLoader.loadBlockModel(modelId);
 	}
 
-	public static void reloadItemModelMesh(ResourceLocation itemOrBlockId) {
+	public static void reloadItemModelMesh(ItemId itemId) {
 		ItemModelMesher itemModelMesher = Minecraft.getMinecraft().getRenderItem().getItemModelMesher();
-		Item item = Item.REGISTRY.getObject(itemOrBlockId);
-		ModelResourceLocation modelResourceLocation = new ModelResourceLocation(itemOrBlockId, "inventory");
+		Item item = Item.REGISTRY.getObject(itemId.toResourceLocation());
+		ModelResourceLocation modelResourceLocation = new ModelResourceLocation(itemId.toItemModelName(), "inventory");
 		itemModelMesher.register(item, 0, modelResourceLocation);
 	}
 
-	public static void loadBlockResources(ResourceLocation blockId) {
+	public static void loadBlockResources(BlockId blockId) {
 		DynamicResourceLoader.loadBlockModel(blockId);
-		DynamicResourceLoader.loadItemModels(Collections.singletonList(blockId));
-		DynamicResourceLoader.reloadItemModelMesh(blockId);
+		DynamicResourceLoader.loadItemModels(Collections.singletonList(blockId.toItemId()));
+		DynamicResourceLoader.reloadItemModelMesh(blockId.toItemId());
 	}
 
 	public static void registerBlockStateMapper(DynamicBlockBase block) {
@@ -278,53 +286,53 @@ public class DynamicResourceLoader {
 
 	//texture
 
-	public static void loadTexturesDynamic(Iterable<ResourceLocation> textureIds) {
+	public static <T extends ITextureId> void loadTexturesDynamic(Iterable<T> textureIds) {
 		try {
 			StitchManager.loadTexturesDynamic(textureIds);
-			for (ResourceLocation textureId : textureIds) {
-				reloadTextureDependantsModel(textureId);
+			for (ITextureId textureId : textureIds) {
+				reloadTextureDependantsModel(textureId.toResourceLocation());
 			}
 		} catch (StitchFullSpaceException e) {
 			ModMain.LOGGER.info("Reload resources!");
 			FMLClientHandler.instance().refreshResources(VanillaResourceType.MODELS);
 		}
 	}
-	public static void unregisterTextures(Iterable<ResourceLocation> textureIds) {
+	public static <T extends ITextureId> void unregisterTextures(Iterable<T> textureIds) {
 		TextureMap textureMap = Minecraft.getMinecraft().getTextureMapBlocks();
-		for (ResourceLocation textureId : textureIds) {
-			TextureAtlasSprite textureAtlasSprite = textureMap.mapRegisteredSprites.remove(textureId.toString());
+		for (T textureId : textureIds) {
+			TextureAtlasSprite textureAtlasSprite = textureMap.mapRegisteredSprites.remove(textureId.toResourceLocation().toString());
 			textureMap.mapUploadedSprites.remove(textureId.toString());
 			if (textureAtlasSprite != null)
 				unregisteredTextureCache.put(textureId, textureAtlasSprite);
-			reloadTextureDependantsModel(textureId);
+			reloadTextureDependantsModel(textureId.toResourceLocation());
 		}
 	}
 	public static void addTextureDependencies(ResourceLocation modelId, Collection<ResourceLocation> textureIds) {
-		if (ClientCache.INSTANCE.isItemModelAdded(modelId)) {
+		if (ItemModelId.isItemModelId(modelId) && ClientCache.INSTANCE.isItemModelAdded(new ItemModelId(modelId))) {
 			for (ResourceLocation textureId : textureIds) {
 				if (textureId.getNamespace().equals("minecraft"))
 					continue;
-				itemModelTextureDependencies.put(textureId, modelId);
+				itemModelTextureDependencies.put(textureId, new ItemModelId(modelId));
 			}
-		} else if (ClientCache.INSTANCE.isBlockModelAdded(modelId)) {
+		} else if (BlockModelId.isBlockModelId(modelId) && ClientCache.INSTANCE.isBlockModelAdded(new BlockModelId(modelId))) {
 			for (ResourceLocation textureId : textureIds) {
 				if (textureId.getNamespace().equals("minecraft"))
 					continue;
-				blockModelTextureDependencies.put(textureId, modelId);
+				blockModelTextureDependencies.put(textureId, new BlockModelId(modelId));
 			}
 		}
 	}
 	public static void reloadTextureDependantsModel(ResourceLocation textureId) {
-		Collection<ResourceLocation> itemModelIds = itemModelTextureDependencies.get(textureId);
+		Collection<ItemModelId> itemModelIds = itemModelTextureDependencies.get(textureId);
 		if (!itemModelIds.isEmpty()) {
-			loadItemModels(itemModelIds.stream().map(IdConverter::itemModelId2itemModelName).collect(Collectors.toList()));
-			for (ResourceLocation modelId : itemModelIds) {
-				reloadItemModelMesh(IdConverter.itemModelId2ItemId(modelId));
+			loadItemModels(itemModelIds.stream().map(ItemModelId::toItemModelName).collect(Collectors.toList()));
+			for (ItemModelId modelId : itemModelIds) {
+				reloadItemModelMesh(modelId.toItemId());
 			}
 		}
-		Collection<ResourceLocation> blockModelIds = blockModelTextureDependencies.get(textureId);
+		Collection<BlockModelId> blockModelIds = blockModelTextureDependencies.get(textureId);
 		if (!blockModelIds.isEmpty()) {
-			for (ResourceLocation blockModelId : blockModelIds) {
+			for (BlockModelId blockModelId : blockModelIds) {
 				reloadBlockModelDependants(blockModelId);
 			}
 		}
@@ -349,26 +357,27 @@ public class DynamicResourceLoader {
 
 
 	public static class SingleBlockModelLoader {
-		private static final Map<ResourceLocation, IBakedModel> modelId2bakedModel = new HashMap<>();
+		private static final Map<BlockModelId, IBakedModel> modelId2bakedModel = new HashMap<>();
 
-		public static void loadBlockModels(Iterable<ResourceLocation> modelIds) {
-			for (ResourceLocation modelId : modelIds) {
+		public static void loadBlockModels(Iterable<BlockModelId> modelIds) {
+			for (BlockModelId modelId : modelIds) {
 				loadBlockModel(modelId);
 			}
 		}
-		public static void loadBlockModel(ResourceLocation modelId) {
-			removeModelCache(modelId);
-			IModel model = ModelLoaderRegistry.getModelOrMissing(modelId);
+		public static void loadBlockModel(BlockModelId modelId) {
+			removeModelCache(modelId.toResourceLocation());
+			IModel model = ModelLoaderRegistry.getModelOrMissing(modelId.toResourceLocation());
 			modelId2bakedModel.put(modelId, bakeModel(model));
 		}
 
-		public static IBakedModel getModel(ResourceLocation modelId) {
+		public static IBakedModel getModel(BlockModelId modelId) {
+
 			return modelId2bakedModel.get(modelId);
 		}
-		public static Collection<ResourceLocation> getModels() {
+		public static Collection<BlockModelId> getModels() {
 			return modelId2bakedModel.keySet();
 		}
-		public static void remove(ResourceLocation modelId) {
+		public static void remove(BlockModelId modelId) {
 			modelId2bakedModel.remove(modelId);
 		}
 		public static void unloadAll() {
@@ -415,10 +424,10 @@ public class DynamicResourceLoader {
 			@Override
 			public void onResourceManagerReload(IResourceManager resourceManager) {
 				SingleBlockModelLoader.loadBlockModels(ClientCache.INSTANCE.blockModelIds.keySet());
-				for (ResourceLocation itemId : MCRegistryUtil.getRemovedItemIds()) {
+				for (ItemId itemId : MCRegistryUtil.getRemovedItemIds()) {
 					putLang(DynamicResourceManager.toTranslationKeyItem(itemId), REMOVED_ITEM_NAME);
 				}
-				for (ResourceLocation blockId : MCRegistryUtil.getRemovedBlockIds()) {
+				for (BlockId blockId : MCRegistryUtil.getRemovedBlockIds()) {
 					putLang(DynamicResourceManager.toTranslationKeyBlock(blockId), REMOVED_BLOCK_NAME);
 				}
 			}

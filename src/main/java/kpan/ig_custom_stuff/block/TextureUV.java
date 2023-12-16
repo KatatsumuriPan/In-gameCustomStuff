@@ -4,7 +4,9 @@ import io.netty.buffer.ByteBuf;
 
 public class TextureUV {
 
-	public static final TextureUV DEFAULT = new TextureUV(0, 0, 16, 16);
+	public static final TextureUV FULL = new TextureUV(0, 0, 16, 16);
+	public static final TextureUV TOP = new TextureUV(0, 0, 16, 8);
+	public static final TextureUV BOTTOM = new TextureUV(0, 8, 16, 16);
 
 	public static TextureUV fromByteBuf(ByteBuf buf) {
 		float minU = buf.readFloat();
@@ -40,6 +42,12 @@ public class TextureUV {
 
 	public TextureUV withMaxV(float maxV) {
 		return new TextureUV(minU, minV, maxU, maxV);
+	}
+
+	public TextureUV subUV(float minX, float minY, float maxX, float maxY) {
+		float width = maxU - minU;
+		float height = maxV - minV;
+		return new TextureUV(width * minX + minU, height * minY + minV, width * maxX + minU, height * maxY + minV);
 	}
 
 	public void writeTo(ByteBuf buf) {

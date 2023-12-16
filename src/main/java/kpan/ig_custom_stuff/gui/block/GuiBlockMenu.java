@@ -7,6 +7,7 @@ import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageDeleteBlockEntryToServer;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.ClientCache;
+import kpan.ig_custom_stuff.resource.ids.BlockId;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import net.minecraft.block.Block;
 import net.minecraft.client.gui.Gui;
@@ -16,7 +17,6 @@ import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.GuiYesNo;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.StringUtils;
@@ -90,8 +90,8 @@ public class GuiBlockMenu extends GuiScreen implements IMyGuiScreen {
 					}, I18n.format("gui.ingame_custom_stuff.addedit_block.delete_block", blockList.getSelectedBlockId()), I18n.format("gui.ingame_custom_stuff.warn.deleting_message"), 0));
 				}
 				case 11 -> {
-					ResourceLocation blockId = blockList.getSelectedBlockId();
-					BlockStateEntry blockStateEntry = ClientCache.INSTANCE.getBlockState(blockId);
+					BlockId blockId = blockList.getSelectedBlockId();
+					BlockStateEntry blockStateEntry = ClientCache.INSTANCE.getBlockState(blockId.toBlockStateId());
 					if (blockStateEntry == null)
 						throw new IllegalStateException();
 					String lang = ClientCache.INSTANCE.getBlockNameLang("en_us", blockId);
@@ -103,19 +103,23 @@ public class GuiBlockMenu extends GuiScreen implements IMyGuiScreen {
 
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+		//blockListの後に描画するとCAGEモデルの向きがバグる
+		//理由は不明
+		{
+			int w = Math.min(height / 3, (int) (infoWidth * 0.8));
+			int l = infoLeft + ((infoWidth - w) / 2);
+			Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
+			Gui.drawRect(l, 0, l + w, w, -1);
+			BlockId blockId = blockList.getSelectedBlockId();
+			if (blockId != null) {
+				Block block = Block.REGISTRY.getObject(blockId.toResourceLocation());
+				RenderUtil.renderItemIntoGUI(new ItemStack(block, 1), l, 0, w / 16f);
+				String usName = ClientCache.INSTANCE.getBlockNameLang("en_us", blockId);
+				drawString(mc.fontRenderer, usName, infoLeft + 4, w + 4, -1);
+			}
+		}
 		blockList.drawScreen(mouseX, mouseY, partialTicks);
 		drawCenteredString(fontRenderer, I18n.format("gui.ingame_custom_stuff.block_menu.title"), 145, 8 - 4, 16777215);
-		int w = Math.min(height / 3, (int) (infoWidth * 0.8));
-		int l = infoLeft + ((infoWidth - w) / 2);
-		Gui.drawRect(infoLeft, 0, width, height, 0xFF000000);
-		Gui.drawRect(l, 0, l + w, w, -1);
-		ResourceLocation blockId = blockList.getSelectedBlockId();
-		if (blockId != null) {
-			Block block = Block.REGISTRY.getObject(blockId);
-			RenderUtil.renderItemIntoGUI(new ItemStack(block, 1), l, 0, w / 16f);
-			String usName = ClientCache.INSTANCE.getBlockNameLang("en_us", blockId);
-			drawString(mc.fontRenderer, usName, infoLeft + 4, w + 4, -1);
-		}
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		searchField.drawTextBox();
 	}

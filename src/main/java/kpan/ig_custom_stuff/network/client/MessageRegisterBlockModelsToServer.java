@@ -9,9 +9,9 @@ import kpan.ig_custom_stuff.network.MessageUtil;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.server.MessageRegisterBlockModelsToClient;
 import kpan.ig_custom_stuff.resource.DynamicResourceManager.Server;
+import kpan.ig_custom_stuff.resource.ids.BlockModelId;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -26,9 +26,9 @@ public class MessageRegisterBlockModelsToServer extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageRegisterBlockModelsToServer() { }
 
-	private Map<ResourceLocation, BlockModelEntry> modelId2Entry;
+	private Map<BlockModelId, BlockModelEntry> modelId2Entry;
 
-	public MessageRegisterBlockModelsToServer(Map<ResourceLocation, BlockModelEntry> modelId2Entry) {
+	public MessageRegisterBlockModelsToServer(Map<BlockModelId, BlockModelEntry> modelId2Entry) {
 		this.modelId2Entry = modelId2Entry;
 	}
 
@@ -37,7 +37,7 @@ public class MessageRegisterBlockModelsToServer extends MessageBase {
 		int count = readVarInt(buf);
 		modelId2Entry = new HashMap<>();
 		for (int i = 0; i < count; i++) {
-			ResourceLocation modelId = new ResourceLocation(readString(buf));
+			BlockModelId modelId = BlockModelId.formByteBuf(buf);
 			BlockModelEntry blockModelEntry = BlockModelEntry.fromByteBuf(buf);
 			modelId2Entry.put(modelId, blockModelEntry);
 		}
@@ -45,8 +45,8 @@ public class MessageRegisterBlockModelsToServer extends MessageBase {
 	@Override
 	public void toBytes(ByteBuf buf) {
 		writeVarInt(buf, modelId2Entry.size());
-		for (Entry<ResourceLocation, BlockModelEntry> e : modelId2Entry.entrySet()) {
-			writeString(buf, e.getKey().toString());
+		for (Entry<BlockModelId, BlockModelEntry> e : modelId2Entry.entrySet()) {
+			e.getKey().writeTo(buf);
 			e.getValue().writeTo(buf);
 		}
 	}
@@ -61,8 +61,8 @@ public class MessageRegisterBlockModelsToServer extends MessageBase {
 			return;
 		}
 
-		Map<ResourceLocation, BlockModelEntry> succeeded = new Object2ObjectArrayMap<>();
-		for (Entry<ResourceLocation, BlockModelEntry> entry : modelId2Entry.entrySet()) {
+		Map<BlockModelId, BlockModelEntry> succeeded = new Object2ObjectArrayMap<>();
+		for (Entry<BlockModelId, BlockModelEntry> entry : modelId2Entry.entrySet()) {
 			try {
 				if (Server.INSTANCE.addBlockModel(entry.getKey(), entry.getValue()))
 					succeeded.put(entry.getKey(), entry.getValue());
