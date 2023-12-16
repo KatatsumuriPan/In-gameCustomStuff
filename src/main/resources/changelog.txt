@@ -1,3 +1,9 @@
+version 1.3.0 :
+ Move block models to the dir "normal/".
+ Add a new block model type: Slab.
+ Add a new block state type: Slab.
+ Add block model rotation.
+ Fix bug that Cage model is rendered in reverse.
 version 1.2.1 :
  Fix bug that name is overwritten with id.
  Fix bug that the server crashes if no chunks are loaded.
