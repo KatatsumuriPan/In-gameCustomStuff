@@ -356,10 +356,10 @@ public class BlockModelEntry {
 					JsonObject element = elements.get(0).getAsJsonObject();
 					Vector3f from = JsonUtil.parsePosition(element, "from");
 					if (from.x != 0 || from.y != 0 || from.z != 0)
-						throw new JsonParseException("from is not [0, 8, 0]:" + from);
+						throw new JsonParseException("from is not [0, 0, 0]:" + from);
 					Vector3f to = JsonUtil.parsePosition(element, "to");
 					if (to.x != 16 || to.y != 8 || to.z != 16)
-						throw new JsonParseException("to is not [16, 16, 16]:" + to);
+						throw new JsonParseException("to is not [16, 8, 16]:" + to);
 					JsonObject faces = JsonUtils.getJsonObject(element, "faces");
 					for (int i = 0; i < EnumFacing.VALUES.length; i++) {
 						EnumFacing face = EnumFacing.VALUES[i];
