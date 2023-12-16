@@ -3,7 +3,7 @@ package kpan.ig_custom_stuff.gui.block;
 import kpan.ig_custom_stuff.block.BlockCollisionAABB;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.gui.MyGuiList;
-import kpan.ig_custom_stuff.gui.MyGuiList.ButtonEntry;
+import kpan.ig_custom_stuff.gui.MyGuiList.LabeledButtonEntry;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -66,7 +66,7 @@ public class GuiEditCollisionAABB extends GuiScreen implements IMyGuiScreen {
 		}
 		guiList.initGui();
 		guiList.controlX += fontRenderer.getStringWidth(BlockCollisionAABB.FULL_BLOCK.toString()) + 10;
-		guiList.controlWidth = guiList.maxEntryRightBound - guiList.controlX - 45;
+		guiList.controlWidth -= fontRenderer.getStringWidth(BlockCollisionAABB.FULL_BLOCK.toString()) + 10;
 	}
 
 	@Override
@@ -158,7 +158,7 @@ public class GuiEditCollisionAABB extends GuiScreen implements IMyGuiScreen {
 	}
 
 
-	private static class AABBEntry extends ButtonEntry {
+	private static class AABBEntry extends LabeledButtonEntry {
 
 		private final GuiEditCollisionAABB owner;
 

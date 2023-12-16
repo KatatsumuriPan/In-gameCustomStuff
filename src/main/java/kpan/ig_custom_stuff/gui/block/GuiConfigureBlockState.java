@@ -41,10 +41,10 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 		addButton(new GuiButton(1, width / 2 + 5, height - 28, 150, 20, I18n.format("gui.cancel")));
 
 		BlockStateType type;
-		if (blockStateEntry != null) {
-			type = blockStateEntry.blockstateType;
-		} else if (modelTypeBtn != null) {
+		if (modelTypeBtn != null) {
 			type = BlockStateType.values()[modelTypeBtn.getSelectedButtonIndex()];
+		} else if (blockStateEntry != null) {
+			type = blockStateEntry.blockstateType;
 		} else {
 			type = BlockStateType.SIMPLE;
 		}
@@ -70,7 +70,7 @@ public class GuiConfigureBlockState extends GuiScreen implements IMyGuiScreen {
 	}
 
 	public BlockStateEntry getModelEntry() {
-		return new BlockStateEntry(getBlockStateType(), selectBlockModelButton.blockModelGroupId, selectBlockModelButton.rotationX, selectBlockModelButton.rotationY, ImmutableMap.of());
+		return new BlockStateEntry(getBlockStateType(), selectBlockModelButton.blockModelGroupId, selectBlockModelButton.rotationX, selectBlockModelButton.rotationY, selectBlockModelButton.uvlock, ImmutableMap.of());
 	}
 
 	@Override

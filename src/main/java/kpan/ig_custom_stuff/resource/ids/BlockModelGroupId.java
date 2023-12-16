@@ -1,7 +1,7 @@
 package kpan.ig_custom_stuff.resource.ids;
 
 import io.netty.buffer.ByteBuf;
-import kpan.ig_custom_stuff.block.BlockModelEntry;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryBase;
 import kpan.ig_custom_stuff.util.MyByteBufUtil;
 import net.minecraft.util.ResourceLocation;
 
@@ -24,7 +24,7 @@ public class BlockModelGroupId implements Comparable<BlockModelGroupId> {
 	public final String namespace;
 	public final String path;
 	public BlockModelGroupId(BlockModelGroupType blockModelGroupType, BlockModelId blockModelId) {
-		this(blockModelGroupType, blockModelId.namespace, blockModelId.path.contains(BlockModelEntry.VARIANT_MARKER) ? blockModelId.path.substring(0, blockModelId.path.indexOf(BlockModelEntry.VARIANT_MARKER)) : blockModelId.path);
+		this(blockModelGroupType, blockModelId.namespace, blockModelId.path.contains(BlockModelEntryBase.VARIANT_MARKER) ? blockModelId.path.substring(0, blockModelId.path.indexOf(BlockModelEntryBase.VARIANT_MARKER)) : blockModelId.path);
 	}
 	public BlockModelGroupId(BlockModelGroupType blockModelGroupType, String namespace, String path) {
 		this.blockModelGroupType = blockModelGroupType;
@@ -42,7 +42,7 @@ public class BlockModelGroupId implements Comparable<BlockModelGroupId> {
 	}
 
 	public BlockModelId getVariantId(String variant) {
-		return new BlockModelId(namespace, path + BlockModelEntry.VARIANT_MARKER + variant);
+		return new BlockModelId(namespace, path + BlockModelEntryBase.VARIANT_MARKER + variant);
 	}
 
 	@Override
@@ -82,7 +82,10 @@ public class BlockModelGroupId implements Comparable<BlockModelGroupId> {
 				return new BlockModelId(namespace, path);
 			}
 			case SLAB -> {
-				return new BlockModelId(namespace, path + BlockModelEntry.VARIANT_MARKER + "bottom");
+				return new BlockModelId(namespace, path + BlockModelEntryBase.VARIANT_MARKER + "bottom");
+			}
+			case STAIR -> {
+				return new BlockModelId(namespace, path + BlockModelEntryBase.VARIANT_MARKER + "straight");
 			}
 			default -> throw new AssertionError();
 		}
@@ -94,17 +97,29 @@ public class BlockModelGroupId implements Comparable<BlockModelGroupId> {
 			}
 			case SLAB -> {
 				Map<String, BlockModelId> map = new HashMap<>();
-				map.put("top", new BlockModelId(namespace, path + BlockModelEntry.VARIANT_MARKER + "top"));
-				map.put("bottom", new BlockModelId(namespace, path + BlockModelEntry.VARIANT_MARKER + "bottom"));
-				map.put("double", new BlockModelId(namespace, path + BlockModelEntry.VARIANT_MARKER + "double"));
+				addVariantBlockModelId(map, "top");
+				addVariantBlockModelId(map, "bottom");
+				addVariantBlockModelId(map, "double");
+				return map;
+			}
+			case STAIR -> {
+				Map<String, BlockModelId> map = new HashMap<>();
+				addVariantBlockModelId(map, "straight");
+				addVariantBlockModelId(map, "inner");
+				addVariantBlockModelId(map, "outer");
 				return map;
 			}
 			default -> throw new AssertionError();
 		}
 	}
 
+	private void addVariantBlockModelId(Map<String, BlockModelId> map, String variant) {
+		map.put(variant, getVariantId(variant));
+	}
+
 	public enum BlockModelGroupType {
 		NORMAL,
 		SLAB,
+		STAIR,
 	}
 }

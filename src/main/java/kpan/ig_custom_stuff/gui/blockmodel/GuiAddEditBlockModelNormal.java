@@ -1,10 +1,12 @@
 package kpan.ig_custom_stuff.gui.blockmodel;
 
 import kpan.ig_custom_stuff.ModReference;
-import kpan.ig_custom_stuff.block.BlockModelEntry;
-import kpan.ig_custom_stuff.block.BlockModelEntry.ModelType;
-import kpan.ig_custom_stuff.block.BlockModelFaceEntry;
 import kpan.ig_custom_stuff.block.TextureUV;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryBase;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryBase.ModelType;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryCage;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryNormal;
+import kpan.ig_custom_stuff.block.model.BlockModelTextureEntry;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.gui.texture.GuiSelectTexture;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
@@ -43,22 +45,13 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 	private static final int viewLeft = 270;
 
 	public static GuiAddEditBlockModelNormal add(IMyGuiScreen okScreen, IMyGuiScreen cancelScreen) {
-		BlockModelFaceEntry[] faces = new BlockModelFaceEntry[6];
-		for (int i = 0; i < faces.length; i++) {
-			faces[i] = new BlockModelFaceEntry(EnumFacing.VALUES[i].getName2(), TextureUV.FULL, 0, EnumFacing.VALUES[i]);
-		}
 		ResourceLocation dirt = new ResourceLocation("blocks/dirt");
-		HashMap<String, ResourceLocation> textureIds = new HashMap<>();
-		textureIds.put("down", dirt);
-		textureIds.put("up", dirt);
-		textureIds.put("north", dirt);
-		textureIds.put("east", dirt);
-		textureIds.put("south", dirt);
-		textureIds.put("west", dirt);
-		textureIds.put("particle", dirt);
-		return new GuiAddEditBlockModelNormal(okScreen, cancelScreen, true, new BlockModelEntry(ModelType.NORMAL, faces, textureIds));
+		BlockModelTextureEntry[] faces = new BlockModelTextureEntry[6];
+		BlockModelTextureEntry dirt_texture = new BlockModelTextureEntry(dirt, TextureUV.FULL, 0);
+		Arrays.fill(faces, dirt_texture);
+		return new GuiAddEditBlockModelNormal(okScreen, cancelScreen, true, new BlockModelEntryNormal(faces, dirt_texture));
 	}
-	public static GuiAddEditBlockModelNormal edit(IMyGuiScreen parent, BlockModelId modelId, BlockModelEntry blockModelEntry) {
+	public static GuiAddEditBlockModelNormal edit(IMyGuiScreen parent, BlockModelId modelId, BlockModelEntryBase blockModelEntry) {
 		GuiAddEditBlockModelNormal gui = new GuiAddEditBlockModelNormal(parent, parent, false, blockModelEntry);
 		gui.initModelId = modelId.namespace + ":" + modelId.path.substring("normal/".length());
 		return gui;
@@ -72,14 +65,14 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 	private String initModelId = "";
 	private GuiTextField modelIdField;
 	private @Nullable String modelIdError = null;
-	private BlockModelEntry blockModelEntry;
+	private BlockModelEntryBase blockModelEntry;
 	private IBakedModel modelCache;
 	private int lastMouseX = -1;
 	private int lastMouseY = -1;
-	private float rotateYaw = 10;
+	private float rotateYaw = 10 + 180;
 	private float rotatePitch = 30;
 
-	public GuiAddEditBlockModelNormal(IMyGuiScreen okScreen, IMyGuiScreen cancelScreen, boolean isAdd, BlockModelEntry blockModelEntry) {
+	public GuiAddEditBlockModelNormal(IMyGuiScreen okScreen, IMyGuiScreen cancelScreen, boolean isAdd, BlockModelEntryBase blockModelEntry) {
 		this.okScreen = okScreen;
 		this.cancelScreen = cancelScreen;
 		this.isAdd = isAdd;
@@ -134,7 +127,7 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 	protected void actionPerformed(GuiButton button) {
 		switch (button.id) {
 			case 0 -> {
-				Map<BlockModelId, BlockModelEntry> map = new HashMap<>();
+				Map<BlockModelId, BlockModelEntryBase> map = new HashMap<>();
 				map.put(getModelId(), blockModelEntry);
 				if (isAdd)
 					MyPacketHandler.sendToServer(new MessageRegisterBlockModelsToServer(map));
@@ -146,11 +139,16 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 			case 2 -> {
 				ModelType nextModelType;
 				switch (blockModelEntry.modelType) {
-					case NORMAL -> nextModelType = ModelType.CAGE;
-					case CAGE -> nextModelType = ModelType.NORMAL;
+					case NORMAL -> {
+						nextModelType = ModelType.CAGE;
+						blockModelEntry = new BlockModelEntryCage(blockModelEntry.getTextures());
+					}
+					case CAGE -> {
+						nextModelType = ModelType.NORMAL;
+						blockModelEntry = new BlockModelEntryNormal(blockModelEntry.getTextures());
+					}
 					default -> throw new AssertionError();
 				}
-				blockModelEntry = new BlockModelEntry(nextModelType, blockModelEntry.faces, blockModelEntry.textureIds);
 				updateCache(blockModelEntry);
 				updateButtonText();
 			}
@@ -158,27 +156,22 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 				mc.displayGuiScreen(new GuiSelectTexture(resourceLocation -> {
 					if (resourceLocation != null) {
 						switch (button.id) {
-							case 10 -> blockModelEntry.textureIds.put("up", resourceLocation);
-							case 11 -> blockModelEntry.textureIds.put("north", resourceLocation);
-							case 12 -> blockModelEntry.textureIds.put("west", resourceLocation);
-							case 13 -> blockModelEntry.textureIds.put("south", resourceLocation);
-							case 14 -> blockModelEntry.textureIds.put("east", resourceLocation);
-							case 15 -> blockModelEntry.textureIds.put("down", resourceLocation);
-							case 16 -> blockModelEntry.textureIds.put("particle", resourceLocation);
+							case 10 -> blockModelEntry.replaceTextureId(EnumFacing.UP.getName2(), resourceLocation);
+							case 11 -> blockModelEntry.replaceTextureId(EnumFacing.NORTH.getName2(), resourceLocation);
+							case 12 -> blockModelEntry.replaceTextureId(EnumFacing.WEST.getName2(), resourceLocation);
+							case 13 -> blockModelEntry.replaceTextureId(EnumFacing.SOUTH.getName2(), resourceLocation);
+							case 14 -> blockModelEntry.replaceTextureId(EnumFacing.EAST.getName2(), resourceLocation);
+							case 15 -> blockModelEntry.replaceTextureId(EnumFacing.DOWN.getName2(), resourceLocation);
+							case 16 -> blockModelEntry.replaceTextureId("particle", resourceLocation);
 							case 17 -> {
-								blockModelEntry.textureIds.put("up", resourceLocation);
-								blockModelEntry.textureIds.put("north", resourceLocation);
-								blockModelEntry.textureIds.put("west", resourceLocation);
-								blockModelEntry.textureIds.put("south", resourceLocation);
-								blockModelEntry.textureIds.put("east", resourceLocation);
-								blockModelEntry.textureIds.put("down", resourceLocation);
-								blockModelEntry.textureIds.put("particle", resourceLocation);
+								for (String textureTag : blockModelEntry.getTextures().keySet()) {
+									blockModelEntry.replaceTextureId(textureTag, resourceLocation);
+								}
 							}
 							case 18 -> {
-								blockModelEntry.textureIds.put("north", resourceLocation);
-								blockModelEntry.textureIds.put("west", resourceLocation);
-								blockModelEntry.textureIds.put("south", resourceLocation);
-								blockModelEntry.textureIds.put("east", resourceLocation);
+								for (EnumFacing facing : EnumFacing.HORIZONTALS) {
+									blockModelEntry.replaceTextureId(facing.getName2(), resourceLocation);
+								}
 							}
 						}
 						updateCache(blockModelEntry);
@@ -204,49 +197,43 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 				if (guibutton.mousePressed(mc, mouseX, mouseY)) {
 					switch (guibutton.id) {
 						case 10, 11, 12, 13, 14, 15, 17, 18 -> {
-							BlockModelFaceEntry faceEntry;
+							BlockModelTextureEntry textureEntry;
 							switch (guibutton.id) {
-								case 10 -> faceEntry = blockModelEntry.faces[EnumFacing.UP.getIndex()];
-								case 11 -> faceEntry = blockModelEntry.faces[EnumFacing.NORTH.getIndex()];
-								case 12 -> faceEntry = blockModelEntry.faces[EnumFacing.WEST.getIndex()];
-								case 13 -> faceEntry = blockModelEntry.faces[EnumFacing.SOUTH.getIndex()];
-								case 14 -> faceEntry = blockModelEntry.faces[EnumFacing.EAST.getIndex()];
-								case 15 -> faceEntry = blockModelEntry.faces[EnumFacing.DOWN.getIndex()];
-								default -> faceEntry = null;
+								case 10 -> textureEntry = blockModelEntry.getTexture(EnumFacing.UP.getName2());
+								case 11 -> textureEntry = blockModelEntry.getTexture(EnumFacing.NORTH.getName2());
+								case 12 -> textureEntry = blockModelEntry.getTexture(EnumFacing.WEST.getName2());
+								case 13 -> textureEntry = blockModelEntry.getTexture(EnumFacing.SOUTH.getName2());
+								case 14 -> textureEntry = blockModelEntry.getTexture(EnumFacing.EAST.getName2());
+								case 15 -> textureEntry = blockModelEntry.getTexture(EnumFacing.DOWN.getName2());
+								default -> textureEntry = null;
 							}
-							if (faceEntry != null) {
-								mc.displayGuiScreen(new GuiEditBlockModelFace(this, blockModelEntry.textureIds, faceEntry, blockModelFaceEntry -> {
+							if (textureEntry != null) {
+								mc.displayGuiScreen(new GuiEditBlockModelFace(this, textureEntry, blockModelFaceEntry -> {
+									switch (guibutton.id) {
+										case 10 -> blockModelEntry.setTexture(EnumFacing.UP.getName2(), blockModelFaceEntry);
+										case 11 -> blockModelEntry.setTexture(EnumFacing.NORTH.getName2(), blockModelFaceEntry);
+										case 12 -> blockModelEntry.setTexture(EnumFacing.WEST.getName2(), blockModelFaceEntry);
+										case 13 -> blockModelEntry.setTexture(EnumFacing.SOUTH.getName2(), blockModelFaceEntry);
+										case 14 -> blockModelEntry.setTexture(EnumFacing.EAST.getName2(), blockModelFaceEntry);
+										case 15 -> blockModelEntry.setTexture(EnumFacing.DOWN.getName2(), blockModelFaceEntry);
+									}
+									updateCache(blockModelEntry);
+								}));
+							} else if (guibutton.id == 17) {
+								mc.displayGuiScreen(new GuiEditBlockModelFace(this, blockModelEntry.getTexture(EnumFacing.UP.getName2()), blockModelFaceEntry -> {
 									if (blockModelFaceEntry != null) {
-										switch (guibutton.id) {
-											case 10 -> blockModelEntry.faces[EnumFacing.UP.getIndex()] = blockModelFaceEntry;
-											case 11 -> blockModelEntry.faces[EnumFacing.NORTH.getIndex()] = blockModelFaceEntry;
-											case 12 -> blockModelEntry.faces[EnumFacing.WEST.getIndex()] = blockModelFaceEntry;
-											case 13 -> blockModelEntry.faces[EnumFacing.SOUTH.getIndex()] = blockModelFaceEntry;
-											case 14 -> blockModelEntry.faces[EnumFacing.EAST.getIndex()] = blockModelFaceEntry;
-											case 15 -> blockModelEntry.faces[EnumFacing.DOWN.getIndex()] = blockModelFaceEntry;
+										for (EnumFacing facing : EnumFacing.VALUES) {
+											blockModelEntry.setTexture(facing.getName2(), with(blockModelEntry.getTexture(facing.getName2()), blockModelFaceEntry.uv, blockModelFaceEntry.rotation));
 										}
 										updateCache(blockModelEntry);
 									}
 								}));
-							} else if (guibutton.id == 17) {
-								mc.displayGuiScreen(new GuiEditBlockModelFace(this, blockModelEntry.textureIds, blockModelEntry.faces[EnumFacing.UP.getIndex()], blockModelFaceEntry -> {
-									if (blockModelFaceEntry != null) {
-										blockModelEntry.faces[EnumFacing.UP.getIndex()] = blockModelFaceEntry;
-										blockModelEntry.faces[EnumFacing.NORTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.NORTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										blockModelEntry.faces[EnumFacing.WEST.getIndex()] = with(blockModelEntry.faces[EnumFacing.WEST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										blockModelEntry.faces[EnumFacing.SOUTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.SOUTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										blockModelEntry.faces[EnumFacing.EAST.getIndex()] = with(blockModelEntry.faces[EnumFacing.EAST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										blockModelEntry.faces[EnumFacing.DOWN.getIndex()] = with(blockModelEntry.faces[EnumFacing.DOWN.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										updateCache(blockModelEntry);
-									}
-								}));
 							} else if (guibutton.id == 18) {
-								mc.displayGuiScreen(new GuiEditBlockModelFace(this, blockModelEntry.textureIds, blockModelEntry.faces[EnumFacing.NORTH.getIndex()], blockModelFaceEntry -> {
+								mc.displayGuiScreen(new GuiEditBlockModelFace(this, blockModelEntry.getTexture(EnumFacing.NORTH.getName2()), blockModelFaceEntry -> {
 									if (blockModelFaceEntry != null) {
-										blockModelEntry.faces[EnumFacing.NORTH.getIndex()] = blockModelFaceEntry;
-										blockModelEntry.faces[EnumFacing.WEST.getIndex()] = with(blockModelEntry.faces[EnumFacing.WEST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										blockModelEntry.faces[EnumFacing.SOUTH.getIndex()] = with(blockModelEntry.faces[EnumFacing.SOUTH.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
-										blockModelEntry.faces[EnumFacing.EAST.getIndex()] = with(blockModelEntry.faces[EnumFacing.EAST.getIndex()], blockModelFaceEntry.uv, blockModelFaceEntry.rotation);
+										for (EnumFacing facing : EnumFacing.HORIZONTALS) {
+											blockModelEntry.setTexture(facing.getName2(), with(blockModelEntry.getTexture(facing.getName2()), blockModelFaceEntry.uv, blockModelFaceEntry.rotation));
+										}
 										updateCache(blockModelEntry);
 									}
 								}));
@@ -334,15 +321,15 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 				default -> throw new AssertionError();
 			}
 
-			BlockModelFaceEntry face = blockModelEntry.faces[EnumFacing.VALUES[i].getIndex()];
-			TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(blockModelEntry.textureIds.get(face.textureTag).toString());
+			BlockModelTextureEntry face = blockModelEntry.getTexture(EnumFacing.VALUES[i].getName2());
+			TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(face.textureId.toString());
 			drawTexture(x, y, sprite, face.uv, face.rotation);
 		}
 		{
 			//particle
 			int x = (int) (100 + textureSize * 3.5);
 			int y = buttonTop;
-			TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(blockModelEntry.textureIds.get("particle").toString());
+			TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(blockModelEntry.getTexture("particle").textureId.toString());
 			drawTexture(x, y, sprite, TextureUV.FULL, 0);
 		}
 		Gui.drawRect(viewLeft, 80, width - 10, height - 30, -1);
@@ -385,11 +372,11 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 	}
 
 	private void updateButtonText() {
-		isCageBtn.displayString = blockModelEntry.isCage() ? "true" : "false";
+		isCageBtn.displayString = blockModelEntry instanceof BlockModelEntryCage ? "true" : "false";
 	}
 
-	private void updateCache(BlockModelEntry blockModelEntry) {
-		modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJsonNormal());
+	private void updateCache(BlockModelEntryBase blockModelEntry) {
+		modelCache = TemporaryBlockModelLoader.loadModel(blockModelEntry.toJson());
 	}
 
 	private BlockModelId getModelId() {
@@ -415,7 +402,7 @@ public class GuiAddEditBlockModelNormal extends GuiScreen implements IMyGuiScree
 		RenderUtil.drawTexturedModalRect(x, y, zLevel, sprite, uv.minU, uv.minV, uv.maxU, uv.maxV, rotation, textureSize, textureSize);
 	}
 
-	private BlockModelFaceEntry with(BlockModelFaceEntry base, TextureUV uv, int rotation) {
-		return new BlockModelFaceEntry(base.textureTag, uv, rotation, base.cullface);
+	private BlockModelTextureEntry with(BlockModelTextureEntry base, TextureUV uv, int rotation) {
+		return new BlockModelTextureEntry(base.textureId, uv, rotation);
 	}
 }

@@ -1,7 +1,7 @@
 package kpan.ig_custom_stuff.network.server;
 
 import io.netty.buffer.ByteBuf;
-import kpan.ig_custom_stuff.block.BlockModelEntry;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryBase;
 import kpan.ig_custom_stuff.gui.blockmodel.GuiBlockModelMenu;
 import kpan.ig_custom_stuff.network.MessageBase;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader;
@@ -23,9 +23,9 @@ public class MessageReplaceBlockModelsToClient extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageReplaceBlockModelsToClient() { }
 
-	private Map<BlockModelId, BlockModelEntry> modelId2Entry;
+	private Map<BlockModelId, BlockModelEntryBase> modelId2Entry;
 
-	public MessageReplaceBlockModelsToClient(Map<BlockModelId, BlockModelEntry> modelId2Entry) {
+	public MessageReplaceBlockModelsToClient(Map<BlockModelId, BlockModelEntryBase> modelId2Entry) {
 		this.modelId2Entry = modelId2Entry;
 	}
 
@@ -35,14 +35,14 @@ public class MessageReplaceBlockModelsToClient extends MessageBase {
 		modelId2Entry = new HashMap<>();
 		for (int i = 0; i < count; i++) {
 			BlockModelId modelId = BlockModelId.formByteBuf(buf);
-			BlockModelEntry blockModelEntry = BlockModelEntry.fromByteBuf(buf);
+			BlockModelEntryBase blockModelEntry = BlockModelEntryBase.fromByteBuf(buf);
 			modelId2Entry.put(modelId, blockModelEntry);
 		}
 	}
 	@Override
 	public void toBytes(ByteBuf buf) {
 		writeVarInt(buf, modelId2Entry.size());
-		for (Entry<BlockModelId, BlockModelEntry> e : modelId2Entry.entrySet()) {
+		for (Entry<BlockModelId, BlockModelEntryBase> e : modelId2Entry.entrySet()) {
 			e.getKey().writeTo(buf);
 			e.getValue().writeTo(buf);
 		}
@@ -54,8 +54,8 @@ public class MessageReplaceBlockModelsToClient extends MessageBase {
 	}
 
 	private static class Client {
-		public static void saveAndLoad(Map<BlockModelId, BlockModelEntry> files) {
-			for (Entry<BlockModelId, BlockModelEntry> entry : files.entrySet()) {
+		public static void saveAndLoad(Map<BlockModelId, BlockModelEntryBase> files) {
+			for (Entry<BlockModelId, BlockModelEntryBase> entry : files.entrySet()) {
 				try {
 					ClientCache.INSTANCE.replaceBlockModel(entry.getKey(), entry.getValue());
 					SingleBlockModelLoader.loadBlockModel(entry.getKey());

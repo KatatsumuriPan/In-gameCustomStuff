@@ -12,9 +12,9 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.vecmath.Vector3f;
 
-public class BlockModelFaceEntry {
+public class BlockModelFaceJson {
 
-	public static BlockModelFaceEntry deserialize(JsonObject jsonObject, Vector3f from, Vector3f to, EnumFacing face) {
+	public static BlockModelFaceJson deserialize(JsonObject jsonObject, Vector3f from, Vector3f to, EnumFacing face) {
 		String textureTag = JsonUtils.getString(jsonObject, "texture");
 		TextureUV uv;
 		if (jsonObject.has("uv")) {
@@ -80,15 +80,15 @@ public class BlockModelFaceEntry {
 			throw new JsonParseException("Invalid rotation " + rotation + " found, only 0/90/180/270 allowed");
 		EnumFacing cullface = EnumFacing.byName(JsonUtils.getString(jsonObject, "cullface", ""));
 
-		return new BlockModelFaceEntry(textureTag, uv, rotation, cullface);
+		return new BlockModelFaceJson(textureTag, uv, rotation, cullface);
 	}
 
-	public static BlockModelFaceEntry fromByteBuf(ByteBuf buf) {
+	public static BlockModelFaceJson fromByteBuf(ByteBuf buf) {
 		String textureTag = MyByteBufUtil.readString(buf);
 		TextureUV uv = TextureUV.fromByteBuf(buf);
 		int rotation = buf.readByte() * 90;
 		@Nullable EnumFacing cullface = EnumFacing.byName(MyByteBufUtil.readString(buf));
-		return new BlockModelFaceEntry(textureTag, uv, rotation, cullface);
+		return new BlockModelFaceJson(textureTag, uv, rotation, cullface);
 	}
 
 	public final String textureTag;
@@ -96,22 +96,23 @@ public class BlockModelFaceEntry {
 	public final int rotation;
 	public final @Nullable EnumFacing cullface;
 
-	public BlockModelFaceEntry(String textureTag, TextureUV uv, int rotation, @Nullable EnumFacing cullface) {
+	public BlockModelFaceJson(String textureTag, TextureUV uv, int rotation, @Nullable EnumFacing cullface) {
 		this.textureTag = textureTag.startsWith("#") ? textureTag.substring(1) : textureTag;
 		this.uv = uv;
 		this.rotation = rotation;
 		this.cullface = cullface;
 	}
 
-	public BlockModelFaceEntry subFace(float minU, float minV, float maxU, float maxV) {
+	//0から1の間
+	public BlockModelFaceJson subFace(float minU, float minV, float maxU, float maxV) {
 		if (rotation == 0)
-			return new BlockModelFaceEntry(textureTag, uv.subUV(minU, minV, maxU, maxV), rotation, cullface);
+			return new BlockModelFaceJson(textureTag, uv.subUV(minU, minV, maxU, maxV), rotation, cullface);
 		else if (rotation == 90)
-			return new BlockModelFaceEntry(textureTag, uv.subUV(minV, 1 - maxU, maxV, 1 - minU), rotation, cullface);
+			return new BlockModelFaceJson(textureTag, uv.subUV(minV, 1 - maxU, maxV, 1 - minU), rotation, cullface);
 		else if (rotation == 180)
-			return new BlockModelFaceEntry(textureTag, uv.subUV(1 - maxU, 1 - maxV, 1 - minU, 1 - minV), rotation, cullface);
+			return new BlockModelFaceJson(textureTag, uv.subUV(1 - maxU, 1 - maxV, 1 - minU, 1 - minV), rotation, cullface);
 		else
-			return new BlockModelFaceEntry(textureTag, uv.subUV(1 - maxV, minU, 1 - minV, maxU), rotation, cullface);
+			return new BlockModelFaceJson(textureTag, uv.subUV(1 - maxV, minU, 1 - minV, maxU), rotation, cullface);
 	}
 
 	public void writeTo(ByteBuf buf) {
