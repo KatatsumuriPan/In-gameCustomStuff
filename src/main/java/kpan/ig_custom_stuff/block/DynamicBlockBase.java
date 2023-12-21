@@ -156,6 +156,15 @@ public class DynamicBlockBase extends Block {
 
 	public void setBlockStateType(BlockStateType blockStateType) {
 		this.blockStateType = blockStateType;
+
+		int id = Block.getIdFromBlock(this);
+		for (IBlockState state : getBlockState().getValidStates()) {
+			final int meta = getMetaFromState(state);
+			BLOCK_STATE_IDS.put(state, id << 4 | meta);
+		}
+		for (int meta = 0; meta < 16; meta++) {
+			BLOCK_STATE_IDS.put(getStateFromMeta(meta), id << 4 | meta);
+		}
 	}
 	public void setRemoved(boolean removed) {
 		isRemoved = removed;
