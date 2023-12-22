@@ -1,4 +1,4 @@
-# IngameCustomStuff
+# In-game Custom Stuff
 
 Add customized stuffs with in-game editing!  
 
