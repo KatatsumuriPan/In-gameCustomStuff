@@ -4,8 +4,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.gson.JsonSyntaxException;
 import kpan.ig_custom_stuff.ModTagsGenerated;
-import kpan.ig_custom_stuff.block.BlockModelEntry;
 import kpan.ig_custom_stuff.block.BlockStateEntry;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryBase;
 import kpan.ig_custom_stuff.item.model.ItemModelEntry;
 import kpan.ig_custom_stuff.resource.ids.BlockId;
 import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId;
@@ -47,7 +47,7 @@ public class DynamicResourceManager {
 	public final Map<String, Map<String, Map<String, String>>> lang = new TreeMap<>();//namespace->langCode->translationKey->name
 	public final Map<BlockStateId, BlockStateEntry> blockStates = new TreeMap<>();
 	public final Map<ItemModelId, ItemModelEntry> itemModelIds = new TreeMap<>();
-	public final Map<BlockModelId, BlockModelEntry> blockModelIds = new TreeMap<>();
+	public final Map<BlockModelId, BlockModelEntryBase> blockModelIds = new TreeMap<>();
 	public final Map<BlockTextureId, @Nullable TextureAnimationEntry> blockTextureIds = new TreeMap<>();
 	public final Map<ItemTextureId, @Nullable TextureAnimationEntry> itemTextureIds = new TreeMap<>();
 
@@ -150,36 +150,35 @@ public class DynamicResourceManager {
 	public boolean isBlockModelAdded(BlockModelId blockModelId) {
 		return blockModelIds.containsKey(blockModelId);
 	}
-	public boolean addBlockModel(BlockModelId modelId, BlockModelEntry blockModelEntry) throws IOException {
+	public boolean addBlockModel(BlockModelId modelId, BlockModelEntryBase blockModelEntry) throws IOException {
 		if (blockModelIds.containsKey(modelId))
 			return false;
 		Path blockModelFilePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
 		Files.createDirectories(blockModelFilePath.getParent());
-		blockModelEntry.saveToFiles(blockModelFilePath);
+		Files.write(Paths.get(blockModelFilePath + ".json"), blockModelEntry.toJson().getBytes(StandardCharsets.UTF_8));
 		namespaceLoader.accept(modelId.namespace);
 		blockModelIds.put(modelId, blockModelEntry);
 		return true;
 	}
-	public boolean replaceBlockModel(BlockModelId modelId, BlockModelEntry blockModelEntry) throws IOException {
+	public boolean replaceBlockModel(BlockModelId modelId, BlockModelEntryBase blockModelEntry) throws IOException {
 		if (!blockModelIds.containsKey(modelId))
 			return false;
 		Path blockModelFilePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
 		Files.createDirectories(blockModelFilePath.getParent());
-		blockModelIds.get(modelId).deleteFiles(blockModelFilePath);
-		blockModelEntry.saveToFiles(blockModelFilePath);
+		Files.write(Paths.get(blockModelFilePath + ".json"), blockModelEntry.toJson().getBytes(StandardCharsets.UTF_8));
 		namespaceLoader.accept(modelId.namespace);
 		blockModelIds.put(modelId, blockModelEntry);
 		return true;
 	}
 	@Nullable
-	public BlockModelEntry getBlockModel(BlockModelId modelId) {
+	public BlockModelEntryBase getBlockModel(BlockModelId modelId) {
 		return blockModelIds.get(modelId);
 	}
 	public boolean removeBlockModel(BlockModelId modelId) throws IOException {
 		if (!blockModelIds.containsKey(modelId))
 			return false;
 		Path blockModelFilePath = assetsDir.resolve(modelId.namespace).resolve("models").resolve(modelId.toResourceLocation().getPath());
-		blockModelIds.remove(modelId).deleteFiles(blockModelFilePath);
+		Files.delete(Paths.get(blockModelFilePath + ".json"));
 		namespaceLoader.accept(modelId.namespace);
 		return true;
 	}
@@ -497,45 +496,21 @@ public class DynamicResourceManager {
 						}
 					}
 					Path dirBlock = dir.resolve("block");
-					//normal
-					{
-						Path dirNormal = dirBlock.resolve("normal");
-						if (Files.exists(dirNormal)) {
-							try (Stream<Path> stream = Files.find(dirNormal, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
-								stream.forEach(p -> {
-									String path = dirBlock.relativize(p).toString().replace('\\', '/');
-									try {
-										blockModelIds.put(new BlockModelId(namespace, path.substring(0, path.lastIndexOf('.'))), BlockModelEntry.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8)));
-									} catch (IOException e) {
-										throw new RuntimeException(e);
-									} catch (JsonSyntaxException e) {
-										throw new RuntimeException("Invalid json file:" + p, e);
-									}
-								});
-							} catch (IOException e) {
-								throw new RuntimeException(e);
-							}
-						}
-					}
-					//slab
-					{
-						Path dirSlab = dirBlock.resolve("slab");
-						if (Files.exists(dirSlab)) {
-							try (Stream<Path> stream = Files.find(dirSlab, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
-								stream.forEach(p -> {
-									String path = dirBlock.relativize(p).toString().replace('\\', '/');
-									path = path.substring(0, path.lastIndexOf('.'));
-									try {
-										blockModelIds.put(new BlockModelId(namespace, path), BlockModelEntry.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8)));
-									} catch (IOException e) {
-										throw new RuntimeException(e);
-									} catch (JsonSyntaxException e) {
-										throw new RuntimeException("Invalid json file:" + p, e);
-									}
-								});
-							} catch (IOException e) {
-								throw new RuntimeException(e);
-							}
+					if (Files.exists(dirBlock)) {
+						try (Stream<Path> stream = Files.find(dirBlock, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())) {
+							stream.forEach(p -> {
+								String path = dirBlock.relativize(p).toString().replace('\\', '/');
+								path = path.substring(0, path.lastIndexOf('.'));
+								try {
+									blockModelIds.put(new BlockModelId(namespace, path), BlockModelEntryBase.fromJson(FileUtils.readFileToString(p.toFile(), StandardCharsets.UTF_8)));
+								} catch (IOException e) {
+									throw new RuntimeException(e);
+								} catch (JsonSyntaxException e) {
+									throw new RuntimeException("Invalid json file:" + p, e);
+								}
+							});
+						} catch (IOException e) {
+							throw new RuntimeException(e);
 						}
 					}
 					namespaceLoader.accept(namespace);
@@ -620,26 +595,29 @@ public class DynamicResourceManager {
 		private static void checkAndUpdateVersion() {
 			try {
 				Path version_path = resourcePackDir.getParent().resolve("resourcepack_version.txt");
-				if (!Files.exists(version_path)) {
-					//初期バージョン
-					updateBlockModelDirectory();
-				} else {
-					String version = FileUtils.readFileToString(version_path.toFile(), StandardCharsets.UTF_8);
-					switch (version) {
-						case "1" -> {
-							//最新
+				while (true) {
+					if (!Files.exists(version_path)) {
+						//初期バージョン
+						moveBlockModelDirectory();
+						Files.write(version_path, "1".getBytes(StandardCharsets.UTF_8));
+					} else {
+						String version = FileUtils.readFileToString(version_path.toFile(), StandardCharsets.UTF_8);
+						switch (version) {
+							case "1" -> {
+								//最新
+								return;
+							}
+							default -> throw new RuntimeException("Unknown resource pack version:" + version);
 						}
-						default -> throw new RuntimeException("Unknown resource pack version:" + version);
 					}
 				}
-				Files.write(version_path, "1".getBytes(StandardCharsets.UTF_8));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
 
 
-		private static void updateBlockModelDirectory() {
+		private static void moveBlockModelDirectory() {
 			List<BlockModelId> updatedBlockModelIds = new ArrayList<>();
 			//まずはblockmodelの移動
 			{
@@ -732,6 +710,10 @@ public class DynamicResourceManager {
 					throw new RuntimeException(e);
 				}
 			}
+		}
+
+		private static void fixBlockModelDisplay() {
+
 		}
 	}
 

@@ -63,6 +63,7 @@ public class Instructions implements List<Instr> {
 	}
 	public Instructions iincInsn(int var, int increment) { return addInstr(Instr.iincInsn(var, increment)); }
 	public Instructions intInsn(OpcodeInt opcode, int operand) { return addInstr(Instr.intInsn(opcode, operand)); }
+	public Instructions newArray(NewArrayType arrayType) { return intInsn(OpcodeInt.NEWARRAY, arrayType.atype); }
 	public Instructions insn(int opcode) { return addInstr(Instr.insn(opcode)); }
 	public Instructions jumpInsn(OpcodeJump opcode, Label label) { return addInstr(Instr.jumpInsn(opcode, label)); }
 	public Instructions jumpInsn(OpcodeJump opcode, int labelIndex) { return addInstr(Instr.jumpInsn(opcode, labelIndex)); }
@@ -505,6 +506,20 @@ public class Instructions implements List<Instr> {
 		public final int opcode;
 
 		OpcodeJump(int opcode) { this.opcode = opcode; }
+	}
+
+	public enum NewArrayType {
+		T_BOOLEAN(4),
+		T_CHAR(5),
+		T_FLOAT(6),
+		T_DOUBLE(7),
+		T_BYTE(8),
+		T_SHORT(9),
+		T_INT(10),
+		T_LONG(11),
+		;
+		public final int atype;
+		NewArrayType(int atype) { this.atype = atype; }
 	}
 
 	//Listインターフェース

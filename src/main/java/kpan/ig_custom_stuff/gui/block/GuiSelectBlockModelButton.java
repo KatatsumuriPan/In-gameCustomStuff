@@ -25,26 +25,32 @@ public class GuiSelectBlockModelButton extends GuiButton {
 	public @Nullable BlockModelGroupId blockModelGroupId;
 	public int rotationX;
 	public int rotationY;
+	public boolean uvlock;
 
 	public GuiSelectBlockModelButton(IMyGuiScreen parent, int buttonId, int x, int y, int widthIn, int heightIn, @Nullable BlockStateEntry blockStateEntry) {
-		this(parent, buttonId, x, y, widthIn, heightIn, blockStateEntry != null ? blockStateEntry.blockModelGroupId : null, blockStateEntry != null ? blockStateEntry.rotationX : 0, blockStateEntry != null ? blockStateEntry.rotationY : 0);
+		this(parent, buttonId, x, y, widthIn, heightIn, blockStateEntry != null ? blockStateEntry.blockModelGroupId : null, blockStateEntry != null ? blockStateEntry.rotationX : 0, blockStateEntry != null ? blockStateEntry.rotationY : 0, blockStateEntry != null ? blockStateEntry.uvlock : false);
 	}
 	public GuiSelectBlockModelButton(IMyGuiScreen parent, int buttonId, int x, int y, int widthIn, int heightIn, GuiSelectBlockModelButton before) {
-		this(parent, buttonId, x, y, widthIn, heightIn, before.blockModelGroupId, before.rotationX, before.rotationY);
+		this(parent, buttonId, x, y, widthIn, heightIn, before.blockModelGroupId, before.rotationX, before.rotationY, before.uvlock);
 	}
-	public GuiSelectBlockModelButton(IMyGuiScreen parent, int buttonId, int x, int y, int widthIn, int heightIn, @Nullable BlockModelGroupId blockModelGroupId, int rotationX, int rotationY) {
+	public GuiSelectBlockModelButton(IMyGuiScreen parent, int buttonId, int x, int y, int widthIn, int heightIn, @Nullable BlockModelGroupId blockModelGroupId, int rotationX, int rotationY, boolean uvlock) {
 		super(buttonId, x, y, widthIn, heightIn, "");
 		this.parent = parent;
 		this.blockModelGroupId = blockModelGroupId;
 		this.rotationX = rotationX;
 		this.rotationY = rotationY;
 		blockModelGroupType = blockModelGroupId != null ? blockModelGroupId.blockModelGroupType : BlockModelGroupType.NORMAL;
+		this.uvlock = uvlock;
 	}
 
 	public void setBlockModelGroupType(BlockModelGroupType blockModelGroupType) {
 		this.blockModelGroupType = blockModelGroupType;
-		if (blockModelGroupId != null && blockModelGroupId.blockModelGroupType != blockModelGroupType)
+		if (blockModelGroupId != null && blockModelGroupId.blockModelGroupType != blockModelGroupType) {
 			blockModelGroupId = null;
+			rotationX = 0;
+			rotationY = 0;
+			uvlock = blockModelGroupType == BlockModelGroupType.STAIR;
+		}
 	}
 
 	@Override

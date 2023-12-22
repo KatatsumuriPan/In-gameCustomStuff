@@ -36,7 +36,7 @@ public class ItemDynamicBlockBase extends ItemBlock {
 	@Override
 	public EnumActionResult onItemUse(EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
 		switch (getBlock().getBlockStateType()) {
-			case SIMPLE, FACE6, HORIZONTAL4, XYZ -> {
+			case SIMPLE, FACE6, HORIZONTAL4, XYZ, STAIR -> {
 				return super.onItemUse(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
 			}
 			case SLAB -> {

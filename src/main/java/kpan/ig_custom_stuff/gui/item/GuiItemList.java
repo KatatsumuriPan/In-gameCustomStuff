@@ -4,6 +4,7 @@ import kpan.ig_custom_stuff.gui.MyGuiSlot;
 import kpan.ig_custom_stuff.registry.MCRegistryUtil;
 import kpan.ig_custom_stuff.resource.ids.ItemId;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
@@ -38,6 +39,15 @@ public class GuiItemList extends MyGuiSlot {
 	@Override
 	public Entry getListEntry(int index) {
 		return (Entry) listEntries.get(index);
+	}
+
+	@Override
+	public void drawScreen(int mouseXIn, int mouseYIn, float partialTicks) {
+		super.drawScreen(mouseXIn, mouseYIn, partialTicks);
+		if (visible) {
+			if (listEntries.isEmpty())
+				mc.fontRenderer.drawString(I18n.format("gui.empty..."), 20, top + 10, 0xFFA0A0A0);
+		}
 	}
 
 

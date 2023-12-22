@@ -32,12 +32,12 @@ public class MyGuiList extends GuiListExtended {
 	public final GuiScreen owningScreen;
 	public final Minecraft mc;
 	public List<IEntry> listEntries;
+	private int listWidth = -1;
+	private int realListWidth;
 	public int maxLabelTextWidth = 0;
-	public int maxEntryRightBound = 0;
 	public int labelX;
 	public int controlX;
 	public int controlWidth;
-	public int resetX;
 	public int scrollBarX;
 	private boolean isOverlaying = false;
 
@@ -48,47 +48,76 @@ public class MyGuiList extends GuiListExtended {
 		this.mc = mc;
 		listEntries = new ArrayList<>();
 		controlWidth = width;
+		realListWidth = width;
 	}
 
-	public void addBooleanButton(String translationKey, boolean beforeValue, BooleanConsumer onChanged) {
-		listEntries.add(new BooleanEntry(this, translationKey, beforeValue, onChanged));
+	public ButtonEntry addButton(String translationKey, Runnable onPressed) {
+		ButtonEntry e = new ButtonEntry(this, translationKey) {
+			@Override
+			public void updateValueButtonText() { }
+			@Override
+			public void valueButtonPressed(int slotIndex) {
+				onPressed.run();
+			}
+		};
+		listEntries.add(e);
+		return e;
 	}
-	public void addIntegerButton(String translationKey, int beforeValue, int minValue, int maxValue, IntConsumer onChanged) {
-		listEntries.add(new IntegerEntry(this, translationKey, beforeValue, minValue, maxValue, onChanged));
+	public BooleanEntry addBooleanButton(String translationKey, boolean beforeValue, BooleanConsumer onChanged) {
+		BooleanEntry e = new BooleanEntry(this, translationKey, beforeValue, onChanged);
+		listEntries.add(e);
+		return e;
 	}
-	public void addFloatButton(String translationKey, float beforeValue, float minValue, float maxValue, FloatConsumer onChanged) {
-		listEntries.add(new FloatEntry(this, translationKey, beforeValue, minValue, maxValue, onChanged));
+	public IntegerEntry addIntegerButton(String translationKey, int beforeValue, int minValue, int maxValue, IntConsumer onChanged) {
+		IntegerEntry e = new IntegerEntry(this, translationKey, beforeValue, minValue, maxValue, onChanged);
+		listEntries.add(e);
+		return e;
 	}
-	public void addDoubleButton(String translationKey, double beforeValue, double minValue, double maxValue, DoubleConsumer onChanged) {
-		listEntries.add(new DoubleEntry(this, translationKey, beforeValue, minValue, maxValue, onChanged));
+	public FloatEntry addFloatButton(String translationKey, float beforeValue, float minValue, float maxValue, FloatConsumer onChanged) {
+		FloatEntry e = new FloatEntry(this, translationKey, beforeValue, minValue, maxValue, onChanged);
+		listEntries.add(e);
+		return e;
 	}
-	public <T> void addValuesButton(String translationKey, T beforeValue, Function<T, String> toTranslationKey, Collection<T> values, Consumer<T> onChanged) {
-		listEntries.add(new SelectValueEntry<>(this, translationKey, beforeValue, toTranslationKey, values, onChanged));
+	public DoubleEntry addDoubleButton(String translationKey, double beforeValue, double minValue, double maxValue, DoubleConsumer onChanged) {
+		DoubleEntry e = new DoubleEntry(this, translationKey, beforeValue, minValue, maxValue, onChanged);
+		listEntries.add(e);
+		return e;
+	}
+	public <T> SelectValueEntry<T> addValuesButton(String translationKey, T beforeValue, Function<T, String> toTranslationKey, Collection<T> values, Consumer<T> onChanged) {
+		SelectValueEntry<T> e = new SelectValueEntry<>(this, translationKey, beforeValue, toTranslationKey, values, onChanged);
+		listEntries.add(e);
+		return e;
 	}
 
 	public void initGui() {
+		right = left + width;
 
 		maxLabelTextWidth = 0;
 		for (IEntry entry : listEntries) {
-			if (entry.getLabelWidth() > maxLabelTextWidth)
-				maxLabelTextWidth = entry.getLabelWidth();
+			if (entry instanceof LabeledEntry labeledEntry) {
+				int labelWidth = labeledEntry.getLabelWidth();
+				if (labelWidth > maxLabelTextWidth)
+					maxLabelTextWidth = labelWidth;
+			}
 		}
-
-		left = 0;
-		right = width;
-		int viewWidth = maxLabelTextWidth + 8 + (width / 2);
-		labelX = (width / 2) - (viewWidth / 2);
-		controlX = labelX + maxLabelTextWidth + 8;
-		resetX = (width / 2) + (viewWidth / 2) - 45;
-
-		maxEntryRightBound = 0;
+		controlWidth = 0;
 		for (IEntry entry : listEntries) {
-			if (entry.getEntryRightBound() > maxEntryRightBound)
-				maxEntryRightBound = entry.getEntryRightBound();
+			if (entry.getEntryWidth() > controlWidth)
+				controlWidth = entry.getEntryWidth();
 		}
 
-		scrollBarX = maxEntryRightBound + 5;
-		controlWidth = maxEntryRightBound - controlX - 45;
+		if (listWidth < 0) {
+			realListWidth = maxLabelTextWidth + 8 + controlWidth + 5 + 6;
+		} else {
+			controlWidth = listWidth - maxLabelTextWidth + 8;
+			realListWidth = listWidth;
+		}
+
+
+		labelX = left + (width / 2) - (realListWidth / 2);
+		controlX = labelX + maxLabelTextWidth + 8;
+
+		scrollBarX = controlX + controlWidth + 5;
 	}
 
 	public void keyTyped(char eventChar, int eventKey) {
@@ -130,6 +159,9 @@ public class MyGuiList extends GuiListExtended {
 		}
 	}
 
+	public void setViewWidth(int viewWidth) {
+		listWidth = viewWidth;
+	}
 	public boolean isOverlaying() {
 		return isOverlaying;
 	}
@@ -151,7 +183,7 @@ public class MyGuiList extends GuiListExtended {
 
 	@Override
 	public int getListWidth() {
-		return width;
+		return Math.min(realListWidth, width);
 	}
 
 	@Override
@@ -159,7 +191,7 @@ public class MyGuiList extends GuiListExtended {
 		return selectedElement == slotIndex;
 	}
 
-	public static class BooleanEntry extends ButtonEntry {
+	public static class BooleanEntry extends LabeledButtonEntry {
 		protected final boolean beforeValue;
 		protected boolean currentValue;
 		protected final BooleanConsumer onChanged;
@@ -187,7 +219,7 @@ public class MyGuiList extends GuiListExtended {
 
 	}
 
-	public static class SelectValueEntry<T> extends ButtonEntry {
+	public static class SelectValueEntry<T> extends LabeledButtonEntry {
 		protected final Function<T, String> toTranslationKey;
 		private final T[] values;
 		private final List<GuiButton> buttonList = new ArrayList<>();
@@ -270,7 +302,7 @@ public class MyGuiList extends GuiListExtended {
 	}
 
 	//TODO
-	public static class ArrayEntry extends ButtonEntry {
+	public static class ArrayEntry extends LabeledButtonEntry {
 		protected final Object[] beforeValues;
 		protected Object[] currentValues;
 
@@ -305,7 +337,7 @@ public class MyGuiList extends GuiListExtended {
 
 	}
 
-	public static class NumberSliderEntry extends ButtonEntry {
+	public static class NumberSliderEntry extends LabeledButtonEntry {
 		protected final double beforeValue;
 		protected final double minValue;
 		protected final double maxValue;
@@ -328,15 +360,15 @@ public class MyGuiList extends GuiListExtended {
 
 	}
 
-	public static abstract class ButtonEntry extends ListEntryBase {
+	public static abstract class LabeledButtonEntry extends LabeledEntry {
 		protected final GuiButtonExt btnValue;
 
-		public ButtonEntry(MyGuiList myGuiList, String tranlationKey) {
+		public LabeledButtonEntry(MyGuiList myGuiList, String tranlationKey) {
 			this(myGuiList, tranlationKey, new GuiButtonExt(0, myGuiList.controlX, 0, myGuiList.controlWidth, 18,
 					I18n.format(tranlationKey)));
 		}
 
-		public ButtonEntry(MyGuiList myGuiList, String tranlationKey, GuiButtonExt button) {
+		public LabeledButtonEntry(MyGuiList myGuiList, String tranlationKey, GuiButtonExt button) {
 			super(myGuiList, tranlationKey);
 			btnValue = button;
 		}
@@ -376,6 +408,11 @@ public class MyGuiList extends GuiListExtended {
 
 		@Override
 		public void updateCursorCounter() { }
+
+		@Override
+		public int getEntryWidth() {
+			return Math.max(mc.fontRenderer.getStringWidth(btnValue.displayString), 100);
+		}
 
 	}
 
@@ -507,7 +544,7 @@ public class MyGuiList extends GuiListExtended {
 
 	}
 
-	public static class StringEntry extends ListEntryBase {
+	public static class StringEntry extends LabeledEntry {
 		protected final GuiTextField textFieldValue;
 		protected final String beforeValue;
 
@@ -553,9 +590,13 @@ public class MyGuiList extends GuiListExtended {
 			return false;
 		}
 
+		@Override
+		public int getEntryWidth() {
+			return 240;
+		}
 	}
 
-	public static abstract class ListEntryBase implements IEntry {
+	public static abstract class LabeledEntry implements IEntry {
 		protected final Minecraft mc;
 		protected final MyGuiList myGuiList;
 		protected final String name;
@@ -564,7 +605,7 @@ public class MyGuiList extends GuiListExtended {
 		protected HoverChecker tooltipHoverChecker;
 		protected boolean drawLabel;
 
-		public ListEntryBase(MyGuiList myGuiList, String translationKey) {
+		public LabeledEntry(MyGuiList myGuiList, String translationKey) {
 			this.myGuiList = myGuiList;
 			mc = Minecraft.getMinecraft();
 			name = I18n.format(translationKey);
@@ -632,16 +673,131 @@ public class MyGuiList extends GuiListExtended {
 		@Override
 		public void updatePosition(int p_178011_1_, int p_178011_2_, int p_178011_3_, float partial) { }
 
-
-		@Override
 		public int getLabelWidth() {
 			return mc.fontRenderer.getStringWidth(name);
 		}
 
-		@Override
-		public int getEntryRightBound() {
-			return myGuiList.resetX + 40;
+		public void setDrawLabel(boolean drawLabel) {
+			this.drawLabel = drawLabel;
 		}
+
+	}
+
+	public static abstract class ButtonEntry extends EntryBase {
+		protected final GuiButtonExt btnValue;
+
+		public ButtonEntry(MyGuiList myGuiList, String tranlationKey) {
+			this(myGuiList, tranlationKey + ".tooltip", new GuiButtonExt(0, myGuiList.controlX, 0, myGuiList.controlWidth, 18,
+					I18n.format(tranlationKey)));
+		}
+
+		public ButtonEntry(MyGuiList myGuiList, String tooltipTranslationKey, GuiButtonExt button) {
+			super(myGuiList, tooltipTranslationKey);
+			btnValue = button;
+		}
+
+		public abstract void updateValueButtonText();
+
+		public abstract void valueButtonPressed(int slotIndex);
+
+		@Override
+		public void drawEntry(int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY, boolean isSelected, float partial) {
+			btnValue.width = myGuiList.controlWidth;
+			btnValue.x = myGuiList.labelX;
+			btnValue.y = y;
+			btnValue.drawButton(mc, mouseX, mouseY, partial);
+		}
+
+		@Override
+		public boolean mousePressed(int index, int x, int y, int mouseEvent, int relativeX, int relativeY) {
+			if (btnValue.mousePressed(mc, x, y)) {
+				btnValue.playPressSound(mc.getSoundHandler());
+				valueButtonPressed(index);
+				updateValueButtonText();
+				return true;
+			} else
+				return super.mousePressed(index, x, y, mouseEvent, relativeX, relativeY);
+		}
+
+		@Override
+		public void mouseReleased(int index, int x, int y, int mouseEvent, int relativeX, int relativeY) {
+			super.mouseReleased(index, x, y, mouseEvent, relativeX, relativeY);
+			btnValue.mouseReleased(x, y);
+		}
+
+		@Override
+		public void keyTyped(char eventChar, int eventKey) { }
+
+		@Override
+		public void updateCursorCounter() { }
+
+		@Override
+		public int getEntryWidth() {
+			return Math.max(mc.fontRenderer.getStringWidth(btnValue.displayString), 100);
+		}
+	}
+
+	public static abstract class EntryBase implements IEntry {
+		protected final Minecraft mc;
+		protected final MyGuiList myGuiList;
+		protected List<String> toolTip;
+		protected boolean isValidValue = true;
+		protected HoverChecker tooltipHoverChecker;
+
+		public EntryBase(MyGuiList myGuiList, String tooltipTranslationKey) {
+			this.myGuiList = myGuiList;
+			mc = Minecraft.getMinecraft();
+			toolTip = new ArrayList<>();
+			if (I18n.hasKey(tooltipTranslationKey))
+				toolTip.add(I18n.format(tooltipTranslationKey).replace("\\n", "\n"));
+		}
+
+		@Override
+		public void drawEntry(int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY, boolean isSelected, float partial) {
+			if (tooltipHoverChecker == null)
+				tooltipHoverChecker = new HoverChecker(y, y + slotHeight, x, myGuiList.labelX - 8, 800);
+			else
+				tooltipHoverChecker.updateBounds(y, y + slotHeight, x, myGuiList.labelX - 8);
+		}
+
+		@Override
+		public void drawToolTip(int mouseX, int mouseY) {
+			boolean canHover = mouseY < myGuiList.bottom && mouseY > myGuiList.top;
+			if (toolTip != null && tooltipHoverChecker != null) {
+				if (tooltipHoverChecker.checkHover(mouseX, mouseY, canHover))
+					GuiUtils.drawHoveringText(toolTip, mouseX, mouseY, myGuiList.width, myGuiList.height, 300, myGuiList.owningScreen.mc.fontRenderer);
+			}
+		}
+
+		@Override
+		public void drawPost(int mouseX, int mouseY, float partialTicks) { }
+		@Override
+		public boolean mousePressed(int index, int x, int y, int mouseEvent, int relativeX, int relativeY) {
+			return false;
+		}
+
+		@Override
+		public void mouseReleased(int index, int x, int y, int mouseEvent, int relativeX, int relativeY) {
+		}
+
+		@Override
+		public void handleMouseInput() {
+
+		}
+
+		@Override
+		public abstract void keyTyped(char eventChar, int eventKey);
+
+		@Override
+		public abstract void updateCursorCounter();
+
+		@Override
+		public boolean mouseClicked(int x, int y, int mouseEvent) {
+			return false;
+		}
+
+		@Override
+		public void updatePosition(int p_178011_1_, int p_178011_2_, int p_178011_3_, float partial) { }
 
 	}
 
@@ -657,9 +813,7 @@ public class MyGuiList extends GuiListExtended {
 
 		void drawPost(int mouseX, int mouseY, float partialTicks);
 
-		int getLabelWidth();
-
-		int getEntryRightBound();
+		int getEntryWidth();
 
 		void handleMouseInput();
 	}

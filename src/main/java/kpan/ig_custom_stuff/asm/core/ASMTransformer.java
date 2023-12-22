@@ -1,6 +1,8 @@
 package kpan.ig_custom_stuff.asm.core;
 
 import kpan.ig_custom_stuff.asm.core.adapters.MixinAccessorAdapter;
+import kpan.ig_custom_stuff.asm.tf.TF_BlockCallbacks;
+import kpan.ig_custom_stuff.asm.tf.TF_BlockStairs;
 import kpan.ig_custom_stuff.asm.tf.TF_CPacketCustomPayload;
 import kpan.ig_custom_stuff.asm.tf.TF_FMLHandshakeClientState;
 import kpan.ig_custom_stuff.asm.tf.TF_FMLHandshakeServerState;
@@ -39,6 +41,8 @@ public class ASMTransformer implements IClassTransformer {
 			//Adapterを通して書き換え出来るようにする。
 			ClassVisitor cv = cw;
 			cv = MixinAccessorAdapter.transformAccessor(cv, transformedName);
+			cv = TF_BlockCallbacks.appendVisitor(cv, transformedName);
+			cv = TF_BlockStairs.appendVisitor(cv, transformedName);
 			cv = TF_CPacketCustomPayload.appendVisitor(cv, transformedName);
 			cv = TF_FMLHandshakeClientState.appendVisitor(cv, transformedName);
 			cv = TF_FMLHandshakeServerState.appendVisitor(cv, transformedName);

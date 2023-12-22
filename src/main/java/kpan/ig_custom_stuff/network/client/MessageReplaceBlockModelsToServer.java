@@ -3,7 +3,7 @@ package kpan.ig_custom_stuff.network.client;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import kpan.ig_custom_stuff.ModMain;
-import kpan.ig_custom_stuff.block.BlockModelEntry;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryBase;
 import kpan.ig_custom_stuff.network.MessageBase;
 import kpan.ig_custom_stuff.network.MessageUtil;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
@@ -26,9 +26,9 @@ public class MessageReplaceBlockModelsToServer extends MessageBase {
 	//デフォルトコンストラクタは必須
 	public MessageReplaceBlockModelsToServer() { }
 
-	private Map<BlockModelId, BlockModelEntry> modelId2Entry;
+	private Map<BlockModelId, BlockModelEntryBase> modelId2Entry;
 
-	public MessageReplaceBlockModelsToServer(Map<BlockModelId, BlockModelEntry> modelId2Entry) {
+	public MessageReplaceBlockModelsToServer(Map<BlockModelId, BlockModelEntryBase> modelId2Entry) {
 		this.modelId2Entry = modelId2Entry;
 	}
 
@@ -38,14 +38,14 @@ public class MessageReplaceBlockModelsToServer extends MessageBase {
 		modelId2Entry = new HashMap<>();
 		for (int i = 0; i < count; i++) {
 			BlockModelId modelId = BlockModelId.formByteBuf(buf);
-			BlockModelEntry blockModelEntry = BlockModelEntry.fromByteBuf(buf);
+			BlockModelEntryBase blockModelEntry = BlockModelEntryBase.fromByteBuf(buf);
 			modelId2Entry.put(modelId, blockModelEntry);
 		}
 	}
 	@Override
 	public void toBytes(ByteBuf buf) {
 		writeVarInt(buf, modelId2Entry.size());
-		for (Entry<BlockModelId, BlockModelEntry> e : modelId2Entry.entrySet()) {
+		for (Entry<BlockModelId, BlockModelEntryBase> e : modelId2Entry.entrySet()) {
 			e.getKey().writeTo(buf);
 			e.getValue().writeTo(buf);
 		}
@@ -61,8 +61,8 @@ public class MessageReplaceBlockModelsToServer extends MessageBase {
 			return;
 		}
 
-		Map<BlockModelId, BlockModelEntry> succeeded = new Object2ObjectArrayMap<>();
-		for (Entry<BlockModelId, BlockModelEntry> entry : modelId2Entry.entrySet()) {
+		Map<BlockModelId, BlockModelEntryBase> succeeded = new Object2ObjectArrayMap<>();
+		for (Entry<BlockModelId, BlockModelEntryBase> entry : modelId2Entry.entrySet()) {
 			try {
 				if (Server.INSTANCE.replaceBlockModel(entry.getKey(), entry.getValue()))
 					succeeded.put(entry.getKey(), entry.getValue());

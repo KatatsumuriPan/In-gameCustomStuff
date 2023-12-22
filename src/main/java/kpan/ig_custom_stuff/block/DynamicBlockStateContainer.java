@@ -2,6 +2,8 @@ package kpan.ig_custom_stuff.block;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -9,6 +11,9 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirectional;
 import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.BlockRotatedPillar;
+import net.minecraft.block.BlockStairs;
+import net.minecraft.block.BlockStairs.EnumHalf;
+import net.minecraft.block.BlockStairs.EnumShape;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -37,11 +42,14 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class DynamicBlockStateContainer extends BlockStateContainer {
 	public static final PropertyInteger META = PropertyInteger.create("meta", 0, 15);
@@ -49,6 +57,10 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 	public static final PropertyDirection HORIZONTAL = BlockHorizontal.FACING;
 	public static final PropertyEnum<Axis> XYZ_AXIS = BlockRotatedPillar.AXIS;
 	public static final PropertyEnum<EnumSlabType> SLAB = PropertyEnum.create("slab", EnumSlabType.class);
+	public static final PropertyEnum<BlockStairs.EnumHalf> STAIR_HALF = BlockStairs.HALF;
+	public static final PropertyEnum<BlockStairs.EnumShape> STAIR_SHAPE = BlockStairs.SHAPE;
+
+	private final BiMap<ImmutableMap<IProperty<?>, Comparable<?>>, IBlockState> stairAdditionalStates = HashBiMap.create();
 
 	public DynamicBlockStateContainer(DynamicBlockBase blockIn) {
 		super(blockIn, META);
@@ -57,8 +69,25 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 			list1.add(new DynamicBlockState(this, blockIn, i));
 		}
 		validStates = ImmutableList.copyOf(list1);
+		for (EnumFacing facing : EnumFacing.HORIZONTALS) {
+			for (EnumHalf half : EnumHalf.values()) {
+				for (EnumShape shape : EnumShape.values()) {
+					if (shape == EnumShape.STRAIGHT)
+						continue;
+					ImmutableMap<IProperty<?>, Comparable<?>> map = ImmutableMap.of(HORIZONTAL, facing, STAIR_HALF, half, STAIR_SHAPE, shape);
+					stairAdditionalStates.put(map, new DynamicBlockState(this, blockIn, getMetaFromStairHalf(half) | getMetaFromStairFacing(facing), ImmutableMap.of(STAIR_SHAPE, shape)));
+				}
+			}
+		}
 	}
 
+	@Override
+	public ImmutableList<IBlockState> getValidStates() {
+		Set<IBlockState> set = new HashSet<>();
+		set.addAll(super.getValidStates());
+		set.addAll(stairAdditionalStates.values());
+		return ImmutableList.copyOf(set);
+	}
 
 	public static int getMetaFromXYZ(Axis axis) {
 		switch (axis) {
@@ -95,6 +124,19 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 		return EnumSlabType.values()[meta];
 	}
 
+	public static int getMetaFromStairHalf(BlockStairs.EnumHalf stairHalf) {
+		return stairHalf == EnumHalf.TOP ? 4 : 0;
+	}
+	public static int getMetaFromStairFacing(EnumFacing stairHorizontal) {
+		return 5 - stairHorizontal.getIndex();//getHorizontalIndexじゃないのはバニラコードそのまま
+	}
+	public static BlockStairs.EnumHalf getStairHalfFromMeta(int meta) {
+		return (meta & 4) > 0 ? BlockStairs.EnumHalf.TOP : BlockStairs.EnumHalf.BOTTOM;
+	}
+	public static EnumFacing getStairFacingFromMeta(int meta) {
+		return EnumFacing.byIndex(5 - (meta & 3));//byHorizontalIndexじゃないのはバニラコードそのまま
+	}
+
 	@SuppressWarnings("deprecation")
 	public static class DynamicBlockState implements IBlockState {
 
@@ -119,10 +161,15 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 		private final DynamicBlockStateContainer owner;
 		private final DynamicBlockBase block;
 		private final int meta;
+		private final @Nullable ImmutableMap<IProperty<?>, Comparable<?>> additionalProperties;
 		public DynamicBlockState(DynamicBlockStateContainer owner, DynamicBlockBase block, int meta) {
+			this(owner, block, meta, null);
+		}
+		public DynamicBlockState(DynamicBlockStateContainer owner, DynamicBlockBase block, int meta, @Nullable ImmutableMap<IProperty<?>, Comparable<?>> additionalProperties) {
 			this.owner = owner;
 			this.block = block;
 			this.meta = meta;
+			this.additionalProperties = additionalProperties;
 		}
 
 		@Override
@@ -142,6 +189,9 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 				}
 				case SLAB -> {
 					return Collections.singletonList(SLAB);
+				}
+				case STAIR -> {
+					return Arrays.asList(HORIZONTAL, STAIR_HALF, STAIR_SHAPE);
 				}
 				default -> throw new AssertionError();
 			}
@@ -170,6 +220,18 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 					if (property == SLAB)
 						return (T) getSlabFromMeta(meta);
 				}
+				case STAIR -> {
+					if (property == HORIZONTAL)
+						return (T) getStairFacingFromMeta(meta);
+					if (property == STAIR_HALF)
+						return (T) getStairHalfFromMeta(meta);
+					if (property == STAIR_SHAPE) {
+						if (additionalProperties != null)
+							return (T) additionalProperties.get(STAIR_SHAPE);
+						else
+							return (T) EnumShape.STRAIGHT;
+					}
+				}
 				default -> throw new AssertionError();
 			}
 			return property.getAllowedValues().iterator().next();
@@ -190,13 +252,25 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 						return owner.validStates.get(((EnumFacing) value).getHorizontalIndex());
 				}
 				case XYZ -> {
-					if (property == XYZ_AXIS) {
+					if (property == XYZ_AXIS)
 						return owner.validStates.get(getMetaFromXYZ((EnumFacing.Axis) value));
-					}
+
 				}
 				case SLAB -> {
 					if (property == SLAB) {
 						return owner.validStates.get(getMetaFromSlab((EnumSlabType) value));
+					}
+				}
+				case STAIR -> {
+					EnumFacing facing = property == HORIZONTAL ? (EnumFacing) value : getStairFacingFromMeta(meta);
+					EnumHalf half = property == STAIR_HALF ? (EnumHalf) value : getStairHalfFromMeta(meta);
+					EnumShape shape = property == STAIR_SHAPE ? (EnumShape) value : additionalProperties != null ? (EnumShape) additionalProperties.get(STAIR_SHAPE) : EnumShape.STRAIGHT;
+					if (shape == EnumShape.STRAIGHT) {
+						int i = DynamicBlockStateContainer.getMetaFromStairHalf(half);
+						i |= DynamicBlockStateContainer.getMetaFromStairFacing(facing);
+						return owner.validStates.get(i);
+					} else {
+						return owner.stairAdditionalStates.get(ImmutableMap.of(HORIZONTAL, facing, STAIR_HALF, half, STAIR_SHAPE, shape));
 					}
 				}
 				default -> throw new AssertionError();
@@ -226,6 +300,12 @@ public class DynamicBlockStateContainer extends BlockStateContainer {
 				}
 				case SLAB -> {
 					return ImmutableMap.of(SLAB, getSlabFromMeta(meta));
+				}
+				case STAIR -> {
+					EnumFacing facing = getStairFacingFromMeta(meta);
+					EnumHalf half = getStairHalfFromMeta(meta);
+					EnumShape shape = additionalProperties != null ? (EnumShape) additionalProperties.get(STAIR_SHAPE) : EnumShape.STRAIGHT;
+					return ImmutableMap.of(HORIZONTAL, facing, STAIR_HALF, half, STAIR_SHAPE, shape);
 				}
 				default -> throw new AssertionError();
 			}

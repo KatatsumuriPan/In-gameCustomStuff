@@ -1,6 +1,6 @@
 package kpan.ig_custom_stuff.gui.blockmodel;
 
-import kpan.ig_custom_stuff.block.BlockModelEntry;
+import kpan.ig_custom_stuff.block.model.BlockModelEntryBase;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.network.MyPacketHandler;
 import kpan.ig_custom_stuff.network.client.MessageDeleteBlockModelsToServer;
@@ -100,13 +100,16 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 					BlockModelGroupId modelGroupId = blockModelList.getSelectedModelGroupId();
 					switch (modelGroupId.blockModelGroupType) {
 						case NORMAL -> {
-							BlockModelEntry model = ClientCache.INSTANCE.getBlockModel(modelGroupId.getRenderModelId());
+							BlockModelEntryBase model = ClientCache.INSTANCE.getBlockModel(modelGroupId.getRenderModelId());
 							if (model == null)
 								throw new IllegalStateException();
 							mc.displayGuiScreen(GuiAddEditBlockModelNormal.edit(this, modelGroupId.getRenderModelId(), model));
 						}
 						case SLAB -> {
 							mc.displayGuiScreen(GuiAddEditBlockModelSlab.edit(this, modelGroupId));
+						}
+						case STAIR -> {
+							mc.displayGuiScreen(GuiAddEditBlockModelStair.edit(this, modelGroupId));
 						}
 					}
 				}
@@ -128,8 +131,8 @@ public class GuiBlockModelMenu extends GuiScreen implements IMyGuiScreen {
 				IBakedModel model = SingleBlockModelLoader.getModel(modelGroupId.getRenderModelId());
 				if (model != null)
 					RenderUtil.renderModel(l, 0, w / 16f, ClientEventHandler.tick * 2, 30, model);
-				BlockModelEntry modelEntry = ClientCache.INSTANCE.getBlockModel(modelGroupId.getRenderModelId());
-				drawString(mc.fontRenderer, I18n.format("gui.ingame_custom_stuff.block_model_menu.block_model_type", modelEntry.getString()), infoLeft + 4, w + 4, -1);
+				BlockModelEntryBase modelEntry = ClientCache.INSTANCE.getBlockModel(modelGroupId.getRenderModelId());
+				drawString(mc.fontRenderer, I18n.format("gui.ingame_custom_stuff.block_model_menu.block_model_type", modelEntry.modelType.getString()), infoLeft + 4, w + 4, -1);
 			}
 		}
 		blockModelList.drawScreen(mouseX, mouseY, partialTicks);

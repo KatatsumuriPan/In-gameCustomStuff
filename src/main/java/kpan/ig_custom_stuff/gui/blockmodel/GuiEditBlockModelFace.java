@@ -1,7 +1,7 @@
 package kpan.ig_custom_stuff.gui.blockmodel;
 
-import kpan.ig_custom_stuff.block.BlockModelFaceEntry;
 import kpan.ig_custom_stuff.block.TextureUV;
+import kpan.ig_custom_stuff.block.model.BlockModelTextureEntry;
 import kpan.ig_custom_stuff.gui.IMyGuiScreen;
 import kpan.ig_custom_stuff.gui.MyGuiList;
 import kpan.ig_custom_stuff.util.RenderUtil;
@@ -11,14 +11,12 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.function.Consumer;
 
 @SideOnly(Side.CLIENT)
@@ -27,21 +25,19 @@ public class GuiEditBlockModelFace extends GuiScreen implements IMyGuiScreen {
 	private final IMyGuiScreen parent;
 	private GuiButton doneButton;
 	private MyGuiList guiList;
-	private final Map<String, ResourceLocation> textureIds;
-	private final BlockModelFaceEntry beforeBlockModelFaceEntry;
-	private final Consumer<BlockModelFaceEntry> onCompleted;
+	private final BlockModelTextureEntry beforeBlockModelTextureEntry;
+	private final Consumer<BlockModelTextureEntry> onCompleted;
 	private int textureSize;
 	private TextureUV uv;
 	private int rotation;
 
 
-	public GuiEditBlockModelFace(IMyGuiScreen parent, Map<String, ResourceLocation> textureIds, BlockModelFaceEntry beforeBlockModelFaceEntry, Consumer<BlockModelFaceEntry> onCompleted) {
+	public GuiEditBlockModelFace(IMyGuiScreen parent, BlockModelTextureEntry beforeBlockModelTextureEntry, Consumer<BlockModelTextureEntry> onCompleted) {
 		this.parent = parent;
-		this.textureIds = textureIds;
-		this.beforeBlockModelFaceEntry = beforeBlockModelFaceEntry;
+		this.beforeBlockModelTextureEntry = beforeBlockModelTextureEntry;
 		this.onCompleted = onCompleted;
-		uv = beforeBlockModelFaceEntry.uv;
-		rotation = beforeBlockModelFaceEntry.rotation;
+		uv = beforeBlockModelTextureEntry.uv;
+		rotation = beforeBlockModelTextureEntry.rotation;
 	}
 
 	@Override
@@ -72,7 +68,7 @@ public class GuiEditBlockModelFace extends GuiScreen implements IMyGuiScreen {
 	protected void actionPerformed(GuiButton button) {
 		switch (button.id) {
 			case 0 -> {
-				onCompleted.accept(new BlockModelFaceEntry(beforeBlockModelFaceEntry.textureTag, uv, rotation, beforeBlockModelFaceEntry.cullface));
+				onCompleted.accept(new BlockModelTextureEntry(beforeBlockModelTextureEntry.textureId, uv, rotation));
 				parent.redisplay();
 			}
 			case 1 -> parent.redisplay();
@@ -105,7 +101,7 @@ public class GuiEditBlockModelFace extends GuiScreen implements IMyGuiScreen {
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		guiList.drawScreenPost(mouseX, mouseY, partialTicks);
 
-		TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(textureIds.get(beforeBlockModelFaceEntry.textureTag).toString());
+		TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(beforeBlockModelTextureEntry.textureId.toString());
 		drawTexture(guiList.width, height / 2 - textureSize, sprite);
 	}
 

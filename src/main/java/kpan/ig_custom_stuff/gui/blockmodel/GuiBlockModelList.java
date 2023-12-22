@@ -3,6 +3,7 @@ package kpan.ig_custom_stuff.gui.blockmodel;
 import kpan.ig_custom_stuff.gui.MyGuiSlot;
 import kpan.ig_custom_stuff.resource.DynamicResourceLoader.SingleBlockModelLoader;
 import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId;
+import kpan.ig_custom_stuff.resource.ids.BlockModelGroupId.BlockModelGroupType;
 import kpan.ig_custom_stuff.util.RenderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
@@ -73,7 +74,12 @@ public class GuiBlockModelList extends MyGuiSlot {
 		@Override
 		public void drawEntry(int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY, boolean isSelected, float partialTicks) {
 			mc.fontRenderer.drawString(modelGroupId.toResourceLocation().toString(), x + 16 + 3, y + 3, 0xFFFFFF);
-			RenderUtil.renderModel(x, y - 1, 1, SingleBlockModelLoader.getModel(modelGroupId.getRenderModelId()));
+			int yaw;
+			if (modelGroupId.blockModelGroupType == BlockModelGroupType.STAIR)
+				yaw = 45;
+			else
+				yaw = 225;
+			RenderUtil.renderModel(x, y - 1, 1, yaw, 30, SingleBlockModelLoader.getModel(modelGroupId.getRenderModelId()));
 		}
 
 		@Override
