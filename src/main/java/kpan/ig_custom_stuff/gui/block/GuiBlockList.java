@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
@@ -37,6 +38,15 @@ public class GuiBlockList extends MyGuiSlot {
 			listEntries.forEach(e -> ((Entry) e).isVisible = true);
 		} else {
 			listEntries.forEach(e -> ((Entry) e).isVisible = visiblePredicate.test((Entry) e));
+		}
+	}
+
+	@Override
+	public void drawScreen(int mouseXIn, int mouseYIn, float partialTicks) {
+		super.drawScreen(mouseXIn, mouseYIn, partialTicks);
+		if (visible) {
+			if (listEntries.isEmpty())
+				mc.fontRenderer.drawString(I18n.format("gui.empty..."), 20, top + 10, 0xFFA0A0A0);
 		}
 	}
 
